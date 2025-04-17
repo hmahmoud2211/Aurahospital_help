@@ -7,10 +7,44 @@ export default function AuthLayout() {
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: Colors.background },
+        animation: 'fade',
       }}
     >
-      <Stack.Screen name="index" options={{ title: "Login" }} />
-      <Stack.Screen name="register" options={{ title: "Register" }} />
+      <Stack.Screen 
+        name="index" 
+        options={{ 
+          headerShown: false,
+          animation: 'fade',
+        }} 
+      />
+      <Stack.Screen 
+        name="register" 
+        options={{ 
+          headerShown: false,
+          animation: 'slide_from_right',
+        }} 
+      />
+      <Stack.Screen 
+        name="forgot-password" 
+        options={{ 
+          headerShown: false,
+          animation: 'slide_from_right',
+        }} 
+      />
+      <Stack.Screen 
+        name="mobile-number" 
+        options={{ 
+          headerShown: false,
+          animation: 'slide_from_right',
+        }} 
+      />
+      <Stack.Screen 
+        name="new-password" 
+        options={{ 
+          headerShown: false,
+          animation: 'slide_from_right',
+        }} 
+      />
     </Stack>
   );
 }

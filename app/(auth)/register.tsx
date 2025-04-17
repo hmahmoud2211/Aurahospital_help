@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Image, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Lock, Mail, User, Calendar, Phone } from 'lucide-react-native';
@@ -7,19 +7,35 @@ import Colors from '@/constants/colors';
 import Typography from '@/constants/typography';
 import Button from '@/components/Button';
 import { useAuthStore } from '@/store/auth-store';
+import tw from 'twrnc';
+import { StatusBar } from 'expo-status-bar';
+import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { User as UserType, UserRole } from '@/types/user';
 
-export default function RegisterScreen() {
+export default function SignupScreen() {
   const router = useRouter();
-  const { register, isLoading, error, clearError } = useAuthStore();
-  
+  const { register, isLoading, error, clearError, isAuthenticated } = useAuthStore();
+  const { width } = Dimensions.get('window');
+  const [role, setRole] = useState<UserRole>('patient');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [nationalId, setNationalId] = useState('');
+  const [phone, setPhone] = useState('');
+  const [licenseNumber, setLicenseNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [dateOfBirth, setDateOfBirth] = useState('');
-  const [phone, setPhone] = useState('');
-  const [userType, setUserType] = useState<'patient' | 'doctor'>('patient');
   const [validationError, setValidationError] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [gender, setGender] = useState<'male' | 'female' | 'other'>('male');
+  const [specialty, setSpecialty] = useState('');
+  const [hospital, setHospital] = useState('');
+
+  // Redirect to dashboard if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/(app)/(tabs)');
+    }
+  }, [isAuthenticated, router]);
 
   const handleRegister = async () => {
     // Clear previous errors
@@ -27,8 +43,13 @@ export default function RegisterScreen() {
     setValidationError('');
     
     // Validate inputs
-    if (!name || !email || !password || !confirmPassword) {
+    if (!name || !email || !password || !confirmPassword || !nationalId || !phone || !dateOfBirth) {
       setValidationError('All fields are required');
+      return;
+    }
+    
+    if (role === 'doctor' && (!licenseNumber || !specialty || !hospital)) {
+      setValidationError('All doctor fields are required');
       return;
     }
     
@@ -37,188 +58,311 @@ export default function RegisterScreen() {
       return;
     }
     
-    // Create user data
-    const userData = {
+    // Create user data based on role
+    const userData: Partial<UserType> = {
       name,
       email,
-      role: userType,
-      dateOfBirth,
+      role,
+      ...(role === 'patient' ? {
+        medicalRecordNumber: nationalId,
+        dateOfBirth,
+        gender,
+        phone,
+      } : {
+        licenseNumber,
+        specialty,
+        hospital,
+        phone,
+      })
     };
     
-    // Register user
-    await register(userData, password);
-    
-    // Navigate to login on success
-    if (!error) {
-      router.replace('/');
+    try {
+      await register(userData, password);
+      // Navigation will be handled by the useEffect above when isAuthenticated changes
+    } catch (error) {
+      console.error('Registration failed:', error);
     }
   };
 
-  const toggleUserType = () => {
-    setUserType(userType === 'patient' ? 'doctor' : 'patient');
-  };
-
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
+    <SafeAreaView style={tw`flex-1 bg-white`}>
+      <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoidingView}
+        style={tw`flex-1`}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <ArrowLeft size={24} color={Colors.text} />
-            </TouchableOpacity>
-            <Text style={styles.title}>Create Account</Text>
-          </View>
-          
-          <View style={styles.userTypeToggle}>
-            <TouchableOpacity
-              style={[
-                styles.userTypeButton,
-                userType === 'patient' && styles.activeUserType,
-              ]}
-              onPress={() => setUserType('patient')}
-            >
-              <User size={20} color={userType === 'patient' ? Colors.primary : Colors.textSecondary} />
-              <Text
-                style={[
-                  styles.userTypeText,
-                  userType === 'patient' && styles.activeUserTypeText,
-                ]}
-              >
-                Patient
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[
-                styles.userTypeButton,
-                userType === 'doctor' && styles.activeUserType,
-              ]}
-              onPress={() => setUserType('doctor')}
-            >
-              <User size={20} color={userType === 'doctor' ? Colors.primary : Colors.textSecondary} />
-              <Text
-                style={[
-                  styles.userTypeText,
-                  userType === 'doctor' && styles.activeUserTypeText,
-                ]}
-              >
-                Doctor
-              </Text>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.form}>
-            <View style={styles.inputContainer}>
-              <User size={20} color={Colors.textSecondary} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Full Name"
-                value={name}
-                onChangeText={setName}
-                onFocus={() => {
-                  clearError();
-                  setValidationError('');
-                }}
-              />
-            </View>
-            
-            <View style={styles.inputContainer}>
-              <Mail size={20} color={Colors.textSecondary} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                onFocus={() => {
-                  clearError();
-                  setValidationError('');
-                }}
-              />
-            </View>
-            
-            <View style={styles.inputContainer}>
-              <Calendar size={20} color={Colors.textSecondary} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Date of Birth (MM/DD/YYYY)"
-                value={dateOfBirth}
-                onChangeText={setDateOfBirth}
-                keyboardType="numbers-and-punctuation"
-                onFocus={() => {
-                  clearError();
-                  setValidationError('');
-                }}
-              />
-            </View>
-            
-            <View style={styles.inputContainer}>
-              <Phone size={20} color={Colors.textSecondary} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Phone Number"
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
-                onFocus={() => {
-                  clearError();
-                  setValidationError('');
-                }}
-              />
-            </View>
-            
-            <View style={styles.inputContainer}>
-              <Lock size={20} color={Colors.textSecondary} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                onFocus={() => {
-                  clearError();
-                  setValidationError('');
-                }}
-              />
-            </View>
-            
-            <View style={styles.inputContainer}>
-              <Lock size={20} color={Colors.textSecondary} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Confirm Password"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry
-                onFocus={() => {
-                  clearError();
-                  setValidationError('');
-                }}
-              />
-            </View>
-            
-            {(error || validationError) && (
-              <Text style={styles.errorText}>{error || validationError}</Text>
-            )}
-            
-            <Button
-              title="Register"
-              onPress={handleRegister}
-              loading={isLoading}
-              disabled={!name || !email || !password || !confirmPassword}
-              fullWidth
-              style={styles.registerButton}
+        <ScrollView 
+          contentContainerStyle={tw`flex-grow`}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          <View style={tw`flex-1 bg-white`}>
+            <StatusBar style="light" />
+            <Image 
+              style={tw`absolute w-full h-full`} 
+              source={require('../assets/hospital.png')} 
+              resizeMode="cover"
             />
-            
-            <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => router.replace('/')}>
-                <Text style={styles.loginLink}>Login</Text>
-              </TouchableOpacity>
+
+            {/* title and form */}
+            <View style={tw`flex-1 w-full justify-center items-center px-8 py-10`}> 
+              {/* Title */}
+              <View style={tw`w-full items-center mb-10`}>
+                <Animated.Text entering={FadeInUp.duration(1000).springify()} style={tw`text-black font-bold tracking-wider text-5xl`}>
+                  Sign Up 
+                </Animated.Text>
+              </View>
+              
+              <Animated.View entering={FadeInDown.delay(100).duration(1000).springify()} style={tw`w-full mb-6 items-center`}>
+                <View style={[tw`flex-row rounded-xl overflow-hidden bg-gray-100`, { maxWidth: 400 }]}>
+                  <TouchableOpacity 
+                    onPress={() => setRole('patient')} 
+                    style={[
+                      tw`py-3 px-10`,
+                      role === 'patient' ? tw`bg-gray-100` : tw`bg-blue-500`
+                    ]}
+                  >
+                    <Text 
+                      style={[
+                        tw`text-base font-medium`,
+                        role === 'patient' ? tw`text-gray-800` : tw`text-white`
+                      ]}
+                    >
+                      Patient
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    onPress={() => setRole('doctor')} 
+                    style={[
+                      tw`py-3 px-10`,
+                      role === 'doctor' ? tw`bg-gray-100` : tw`bg-blue-500`
+                    ]}
+                  >
+                    <Text 
+                      style={[
+                        tw`text-base font-medium`,
+                        role === 'doctor' ? tw`text-gray-800` : tw`text-white`
+                      ]}
+                    >
+                      Doctor
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </Animated.View>
+
+              {/* form */}
+              <View key={role} style={[tw`w-full`, { maxWidth: 400 }]}>
+                {validationError ? (
+                  <Animated.View entering={FadeInDown.delay(100).duration(1000).springify()} style={tw`w-full mb-4`}>
+                    <Text style={tw`text-red-500 text-center`}>{validationError}</Text>
+                  </Animated.View>
+                ) : null}
+                
+                {error ? (
+                  <Animated.View entering={FadeInDown.delay(100).duration(1000).springify()} style={tw`w-full mb-4`}>
+                    <Text style={tw`text-red-500 text-center`}>{error}</Text>
+                  </Animated.View>
+                ) : null}
+
+                <Animated.View entering={FadeInDown.delay(100).duration(1000).springify()} 
+                  style={[
+                    tw`bg-white/80 rounded-2xl w-full mb-4 overflow-hidden`,
+                    { height: 60 }
+                  ]}>
+                  <TextInput 
+                    placeholder='Name' 
+                    placeholderTextColor={'gray'} 
+                    value={name}
+                    onChangeText={setName}
+                    style={[
+                      tw`text-lg px-5`,
+                      { height: '100%' }
+                    ]}
+                  />
+                </Animated.View>
+
+                <Animated.View entering={FadeInDown.delay(200).duration(1000).springify()} 
+                  style={[
+                    tw`bg-white/80 rounded-2xl w-full mb-4 overflow-hidden`,
+                    { height: 60 }
+                  ]}>
+                  <TextInput 
+                    placeholder='Email' 
+                    placeholderTextColor={'gray'} 
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    style={[
+                      tw`text-lg px-5`,
+                      { height: '100%' }
+                    ]}
+                  />
+                </Animated.View>
+
+                <Animated.View entering={FadeInDown.delay(300).duration(1000).springify()} 
+                  style={[
+                    tw`bg-white/80 rounded-2xl w-full mb-4 overflow-hidden`,
+                    { height: 60 }
+                  ]}>
+                  <TextInput 
+                    placeholder={role === 'patient' ? 'Medical Record Number' : 'National ID'} 
+                    placeholderTextColor={'gray'} 
+                    value={nationalId}
+                    onChangeText={setNationalId}
+                    style={[
+                      tw`text-lg px-5`,
+                      { height: '100%' }
+                    ]}
+                  />
+                </Animated.View>
+
+                <Animated.View entering={FadeInDown.delay(400).duration(1000).springify()} 
+                  style={[
+                    tw`bg-white/80 rounded-2xl w-full mb-4 overflow-hidden`,
+                    { height: 60 }
+                  ]}>
+                  <TextInput 
+                    placeholder='Phone Number' 
+                    placeholderTextColor={'gray'} 
+                    value={phone}
+                    onChangeText={setPhone}
+                    keyboardType="phone-pad"
+                    style={[
+                      tw`text-lg px-5`,
+                      { height: '100%' }
+                    ]}
+                  />
+                </Animated.View>
+
+                <Animated.View entering={FadeInDown.delay(500).duration(1000).springify()} 
+                  style={[
+                    tw`bg-white/80 rounded-2xl w-full mb-4 overflow-hidden`,
+                    { height: 60 }
+                  ]}>
+                  <TextInput 
+                    placeholder='Date of Birth (YYYY-MM-DD)' 
+                    placeholderTextColor={'gray'} 
+                    value={dateOfBirth}
+                    onChangeText={setDateOfBirth}
+                    style={[
+                      tw`text-lg px-5`,
+                      { height: '100%' }
+                    ]}
+                  />
+                </Animated.View>
+
+                {role === 'doctor' && (
+                  <>
+                    <Animated.View entering={FadeInDown.delay(600).duration(1000).springify()}
+                      style={[
+                        tw`bg-white/80 rounded-2xl w-full mb-4 overflow-hidden`,
+                        { height: 60 }
+                      ]}>
+                      <TextInput
+                        placeholder="License Number"
+                        placeholderTextColor={'gray'}
+                        value={licenseNumber}
+                        onChangeText={setLicenseNumber}
+                        style={[
+                          tw`text-lg px-5`,
+                          { height: '100%' }
+                        ]}
+                      />
+                    </Animated.View>
+
+                    <Animated.View entering={FadeInDown.delay(700).duration(1000).springify()}
+                      style={[
+                        tw`bg-white/80 rounded-2xl w-full mb-4 overflow-hidden`,
+                        { height: 60 }
+                      ]}>
+                      <TextInput
+                        placeholder="Specialty"
+                        placeholderTextColor={'gray'}
+                        value={specialty}
+                        onChangeText={setSpecialty}
+                        style={[
+                          tw`text-lg px-5`,
+                          { height: '100%' }
+                        ]}
+                      />
+                    </Animated.View>
+
+                    <Animated.View entering={FadeInDown.delay(800).duration(1000).springify()}
+                      style={[
+                        tw`bg-white/80 rounded-2xl w-full mb-4 overflow-hidden`,
+                        { height: 60 }
+                      ]}>
+                      <TextInput
+                        placeholder="Hospital"
+                        placeholderTextColor={'gray'}
+                        value={hospital}
+                        onChangeText={setHospital}
+                        style={[
+                          tw`text-lg px-5`,
+                          { height: '100%' }
+                        ]}
+                      />
+                    </Animated.View>
+                  </>
+                )}
+
+                <Animated.View entering={FadeInDown.delay(900).duration(1000).springify()} 
+                  style={[
+                    tw`bg-white/80 rounded-2xl w-full mb-4 overflow-hidden`,
+                    { height: 60 }
+                  ]}>
+                  <TextInput 
+                    placeholder='Password' 
+                    placeholderTextColor={'gray'} 
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    style={[
+                      tw`text-lg px-5`,
+                      { height: '100%' }
+                    ]}
+                  />
+                </Animated.View>
+
+                <Animated.View entering={FadeInDown.delay(1000).duration(1000).springify()} 
+                  style={[
+                    tw`bg-white/80 rounded-2xl w-full mb-6 overflow-hidden`,
+                    { height: 60 }
+                  ]}>
+                  <TextInput 
+                    placeholder='Confirm Password' 
+                    placeholderTextColor={'gray'} 
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry
+                    style={[
+                      tw`text-lg px-5`,
+                      { height: '100%' }
+                    ]}
+                  />
+                </Animated.View>
+
+                <Animated.View entering={FadeInDown.delay(1100).duration(1000).springify()} style={tw`w-full mb-6`}>
+                  <TouchableOpacity 
+                    onPress={handleRegister}
+                    disabled={isLoading}
+                    style={[
+                      tw`w-full bg-blue-500 rounded-xl items-center justify-center`,
+                      { height: 55 }
+                    ]}>
+                    <Text style={tw`text-xl font-bold text-white text-center`}>
+                      {isLoading ? 'Creating Account...' : 'Sign Up'}
+                    </Text>
+                  </TouchableOpacity>
+                </Animated.View>
+
+                <Animated.View entering={FadeInDown.delay(1200).duration(1000).springify()} style={tw`flex-row justify-center items-center space-x-2`}>
+                  <Text style={tw`text-base`}>Already have an account?</Text>
+                  <TouchableOpacity onPress={() => router.push('/')}>
+                    <Text style={tw`text-sky-600 font-semibold text-base`}>Login</Text>
+                  </TouchableOpacity>
+                </Animated.View>
+              </View>
             </View>
           </View>
         </ScrollView>
