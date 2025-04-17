@@ -37,9 +37,11 @@ export const useAuthStore = create<AuthState>()(
             set({ user, isAuthenticated: true, isLoading: false });
           } else {
             set({ error: 'Invalid email or password', isLoading: false });
+            throw new Error('Invalid email or password');
           }
         } catch (error) {
           set({ error: 'Login failed. Please try again.', isLoading: false });
+          throw error;
         }
       },
       
@@ -59,14 +61,23 @@ export const useAuthStore = create<AuthState>()(
           
           if (existingUser) {
             set({ error: 'Email already in use', isLoading: false });
-            return;
+            throw new Error('Email already in use');
           }
           
           // In a real app, we would create a new user here
           // For now, just simulate success
-          set({ isLoading: false });
+          const newUser: User = {
+            id: 'new-user-id',
+            name: userData.name || '',
+            email: userData.email || '',
+            role: userData.role || 'patient',
+            ...userData
+          };
+          
+          set({ user: newUser, isAuthenticated: true, isLoading: false });
         } catch (error) {
           set({ error: 'Registration failed. Please try again.', isLoading: false });
+          throw error;
         }
       },
       

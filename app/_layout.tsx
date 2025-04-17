@@ -1,62 +1,47 @@
-import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { useFonts } from "expo-font";
+import React from "react";
 import { Stack } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
+import { useAuthStore } from "@/store/auth-store";
 import { useEffect } from "react";
-import { Platform } from "react-native";
-import { ErrorBoundary } from "./error-boundary";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import Colors from "@/constants/colors";
 
-export const unstable_settings = {
-  initialRouteName: "(auth)",
-};
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
-
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    ...FontAwesome.font,
-  });
+  const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
 
   useEffect(() => {
-    if (error) {
-      console.error(error);
-      throw error;
+    if (isAuthenticated) {
+      router.replace("/(app)/(tabs)");
+    } else {
+      router.replace("/(auth)");
     }
-  }, [error]);
+  }, [isAuthenticated]);
 
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
-
-  return (
-    <ErrorBoundary>
-      <SafeAreaProvider>
-        <RootLayoutNav />
-      </SafeAreaProvider>
-    </ErrorBoundary>
-  );
-}
-
-function RootLayoutNav() {
   return (
     <Stack
       screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: Colors.background },
-        animation: 'slide_from_right',
+        headerStyle: {
+          backgroundColor: Colors.primary,
+        },
+        headerTintColor: "#FFFFFF",
+        headerTitleStyle: {
+          fontWeight: "bold",
+        },
+        headerShadowVisible: false,
       }}
     >
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      <Stack.Screen name="(app)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="(auth)"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="(app)"
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }
