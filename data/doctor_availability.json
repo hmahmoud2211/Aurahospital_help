@@ -1,0 +1,49 @@
+{
+  "Dr. Smith": {
+    "specialties": ["General Medicine", "Internal Medicine"],
+    "availability": [
+      {
+        "day": "Monday",
+        "slots": ["9:00 AM", "10:30 AM", "2:00 PM", "3:30 PM"]
+      },
+      {
+        "day": "Wednesday",
+        "slots": ["9:00 AM", "11:00 AM", "1:00 PM", "4:00 PM"]
+      },
+      {
+        "day": "Friday",
+        "slots": ["10:00 AM", "1:30 PM", "3:00 PM", "4:30 PM"]
+      }
+    ]
+  },
+  "Dr. Johnson": {
+    "specialties": ["Cardiology", "Internal Medicine"],
+    "availability": [
+      {
+        "day": "Tuesday",
+        "slots": ["9:00 AM", "11:00 AM", "2:00 PM", "4:00 PM"]
+      },
+      {
+        "day": "Thursday",
+        "slots": ["9:30 AM", "1:00 PM", "3:00 PM", "5:00 PM"]
+      }
+    ]
+  },
+  "Dr. Williams": {
+    "specialties": ["Pediatrics", "Family Medicine"],
+    "availability": [
+      {
+        "day": "Monday",
+        "slots": ["10:00 AM", "1:00 PM", "3:00 PM"]
+      },
+      {
+        "day": "Wednesday",
+        "slots": ["9:00 AM", "11:00 AM", "2:00 PM"]
+      },
+      {
+        "day": "Friday",
+        "slots": ["9:30 AM", "1:30 PM", "4:00 PM"]
+      }
+    ]
+  }
+} 
