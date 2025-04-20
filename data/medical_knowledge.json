@@ -1,0 +1,32 @@
+{
+  "headache": [
+    "Headaches can be caused by stress, dehydration, lack of sleep, or underlying medical conditions.",
+    "For mild headaches, rest, hydration, and over-the-counter pain relievers may help.",
+    "If you experience severe or persistent headaches, please consult a healthcare provider."
+  ],
+  "fever": [
+    "A fever is often a sign that your body is fighting an infection.",
+    "For adults, a fever is generally considered to be 100.4°F (38°C) or higher.",
+    "Rest, fluids, and over-the-counter medications can help manage fever symptoms."
+  ],
+  "cough": [
+    "Coughs can be caused by colds, flu, allergies, or respiratory infections.",
+    "Honey, warm tea, and over-the-counter cough medicines may provide relief.",
+    "If your cough persists for more than a few weeks, see a doctor."
+  ],
+  "back pain": [
+    "Back pain can be caused by poor posture, muscle strain, or underlying conditions.",
+    "Rest, gentle stretching, and over-the-counter pain relievers may help.",
+    "For persistent or severe back pain, consult a healthcare provider."
+  ],
+  "diabetes": [
+    "Diabetes is a chronic condition that affects how your body turns food into energy.",
+    "There are two main types: Type 1 and Type 2 diabetes.",
+    "Regular monitoring, medication, diet, and exercise are key to managing diabetes."
+  ],
+  "hypertension": [
+    "Hypertension (high blood pressure) is a common condition that can lead to serious health problems.",
+    "Lifestyle changes like reducing salt intake and regular exercise can help.",
+    "Medication may be prescribed to help control blood pressure levels."
+  ]
+} 

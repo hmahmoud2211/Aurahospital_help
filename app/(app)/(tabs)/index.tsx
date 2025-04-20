@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bell, Calendar, MessageSquare, FileText, Pill, UserIcon } from 'lucide-react-native';
 import Colors from '@/constants/colors';
@@ -82,45 +82,41 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.quickActionsSection}>
-          <TouchableOpacity 
-            style={styles.actionCard}
-            onPress={() => router.push('/appointments/book')}
-          >
-            <View style={[styles.actionIconContainer, { backgroundColor: Colors.primaryLight }]}>
-              <Calendar size={24} color={Colors.primary} />
-            </View>
-            <Text style={styles.actionText}>Appointments</Text>
-          </TouchableOpacity>
+          <Link href="/(app)/(tabs)/appointments" asChild>
+            <TouchableOpacity style={styles.actionCard}>
+              <View style={[styles.actionIconContainer, { backgroundColor: Colors.primaryLight }]}>
+                <Calendar size={24} color={Colors.primary} />
+              </View>
+              <Text style={styles.actionText}>Appointments</Text>
+            </TouchableOpacity>
+          </Link>
           
-          <TouchableOpacity 
-            style={styles.actionCard}
-            onPress={() => router.push('/chat/ai-assistant')}
-          >
-            <View style={[styles.actionIconContainer, { backgroundColor: '#E3F2FD' }]}>
-              <MessageSquare size={24} color={Colors.info} />
-            </View>
-            <Text style={styles.actionText}>Chat with AI</Text>
-          </TouchableOpacity>
+          <Link href="/(app)/(tabs)/chat" asChild>
+            <TouchableOpacity style={styles.actionCard}>
+              <View style={[styles.actionIconContainer, { backgroundColor: '#E3F2FD' }]}>
+                <MessageSquare size={24} color={Colors.info} />
+              </View>
+              <Text style={styles.actionText}>Chat with AI</Text>
+            </TouchableOpacity>
+          </Link>
           
-          <TouchableOpacity 
-            style={styles.actionCard}
-            onPress={() => router.push('/medical-records/upload')}
-          >
-            <View style={[styles.actionIconContainer, { backgroundColor: '#E8F5E9' }]}>
-              <FileText size={24} color={Colors.success} />
-            </View>
-            <Text style={styles.actionText}>Upload Docs</Text>
-          </TouchableOpacity>
+          <Link href="/(app)/(tabs)/records" asChild>
+            <TouchableOpacity style={styles.actionCard}>
+              <View style={[styles.actionIconContainer, { backgroundColor: '#E8F5E9' }]}>
+                <FileText size={24} color={Colors.success} />
+              </View>
+              <Text style={styles.actionText}>Upload Docs</Text>
+            </TouchableOpacity>
+          </Link>
           
-          <TouchableOpacity 
-            style={styles.actionCard}
-            onPress={() => router.push('/pharmacy')}
-          >
-            <View style={[styles.actionIconContainer, { backgroundColor: '#FFF3E0' }]}>
-              <Pill size={24} color="#FF9800" />
-            </View>
-            <Text style={styles.actionText}>Pharmacy</Text>
-          </TouchableOpacity>
+          <Link href="/(app)/(tabs)/pharmacy" asChild>
+            <TouchableOpacity style={styles.actionCard}>
+              <View style={[styles.actionIconContainer, { backgroundColor: '#FFF3E0' }]}>
+                <Pill size={24} color="#FF9800" />
+              </View>
+              <Text style={styles.actionText}>Pharmacy</Text>
+            </TouchableOpacity>
+          </Link>
         </View>
 
         <View style={styles.upcomingAppointmentsSection}>
@@ -192,45 +188,41 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.quickActionsSection}>
-          <TouchableOpacity 
-            style={styles.actionCard}
-            onPress={() => router.push('/appointments')}
-          >
-            <View style={[styles.actionIconContainer, { backgroundColor: Colors.primaryLight }]}>
-              <Calendar size={24} color={Colors.primary} />
-            </View>
-            <Text style={styles.actionText}>Schedule</Text>
-          </TouchableOpacity>
+          <Link href="/(app)/(tabs)/appointments" asChild>
+            <TouchableOpacity style={styles.actionCard}>
+              <View style={[styles.actionIconContainer, { backgroundColor: Colors.primaryLight }]}>
+                <Calendar size={24} color={Colors.primary} />
+              </View>
+              <Text style={styles.actionText}>Schedule</Text>
+            </TouchableOpacity>
+          </Link>
           
-          <TouchableOpacity 
-            style={styles.actionCard}
-            onPress={() => router.push('/patient-monitoring')}
-          >
-            <View style={[styles.actionIconContainer, { backgroundColor: '#E3F2FD' }]}>
-              <FileText size={24} color={Colors.info} />
-            </View>
-            <Text style={styles.actionText}>Patients</Text>
-          </TouchableOpacity>
+          <Link href="/patient-monitoring" asChild>
+            <TouchableOpacity style={styles.actionCard}>
+              <View style={[styles.actionIconContainer, { backgroundColor: '#E3F2FD' }]}>
+                <FileText size={24} color={Colors.info} />
+              </View>
+              <Text style={styles.actionText}>Patients</Text>
+            </TouchableOpacity>
+          </Link>
           
-          <TouchableOpacity 
-            style={styles.actionCard}
-            onPress={() => router.push('/diagnostic-tools')}
-          >
-            <View style={[styles.actionIconContainer, { backgroundColor: '#E8F5E9' }]}>
-              <MessageSquare size={24} color={Colors.success} />
-            </View>
-            <Text style={styles.actionText}>Diagnostics</Text>
-          </TouchableOpacity>
+          <Link href="/diagnostic-tools" asChild>
+            <TouchableOpacity style={styles.actionCard}>
+              <View style={[styles.actionIconContainer, { backgroundColor: '#E8F5E9' }]}>
+                <MessageSquare size={24} color={Colors.success} />
+              </View>
+              <Text style={styles.actionText}>Diagnostics</Text>
+            </TouchableOpacity>
+          </Link>
           
-          <TouchableOpacity 
-            style={styles.actionCard}
-            onPress={() => router.push('/pharmacy')}
-          >
-            <View style={[styles.actionIconContainer, { backgroundColor: '#FFF3E0' }]}>
-              <Pill size={24} color="#FF9800" />
-            </View>
-            <Text style={styles.actionText}>Prescribe</Text>
-          </TouchableOpacity>
+          <Link href="/(app)/(tabs)/pharmacy" asChild>
+            <TouchableOpacity style={styles.actionCard}>
+              <View style={[styles.actionIconContainer, { backgroundColor: '#FFF3E0' }]}>
+                <Pill size={24} color="#FF9800" />
+              </View>
+              <Text style={styles.actionText}>Prescribe</Text>
+            </TouchableOpacity>
+          </Link>
         </View>
 
         <View style={styles.patientUpdatesSection}>
@@ -261,7 +253,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.patientCardButton}
-                onPress={() => router.push('/chat/p1')}
+                onPress={() => router.push('/(app)/(tabs)/chat')}
               >
                 <Text style={styles.patientCardButtonText}>Send Message</Text>
               </TouchableOpacity>
@@ -288,7 +280,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.patientCardButton}
-                onPress={() => router.push('/chat/p2')}
+                onPress={() => router.push('/(app)/(tabs)/chat')}
               >
                 <Text style={styles.patientCardButtonText}>Send Message</Text>
               </TouchableOpacity>
