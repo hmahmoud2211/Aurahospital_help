@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Modal, TextInput, Button } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bell, Clock, Pill } from 'lucide-react-native';
+import { Bell, Clock, Pill, Plus } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import Typography from '@/constants/typography';
 import Header from '@/components/Header';
@@ -15,6 +15,14 @@ export default function PharmacyScreen() {
   const { user } = useAuthStore();
   const { medications, fetchMedications, requestMedicationRefill, isLoading } = useMedicalRecordsStore();
   
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [newPrescription, setNewPrescription] = useState({
+    name: '',
+    dosage: '',
+    frequency: '',
+    notes: ''
+  });
+
   useEffect(() => {
     if (user && user.role === 'patient') {
       fetchMedications(user.id);
@@ -23,7 +31,12 @@ export default function PharmacyScreen() {
   
   const handleRefill = async (medicationId: string) => {
     await requestMedicationRefill(medicationId);
-    // In a real app, we would show a success message or update the UI
+  };
+
+  const handleAddPrescription = () => {
+    console.log('New Prescription:', newPrescription);
+    setNewPrescription({ name: '', dosage: '', frequency: '', notes: '' });
+    setIsModalVisible(false);
   };
 
   return (
@@ -47,9 +60,18 @@ export default function PharmacyScreen() {
         
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>My Prescriptions</Text>
-          <TouchableOpacity>
-            <Text style={styles.viewAllText}>View All</Text>
-          </TouchableOpacity>
+          <View style={styles.headerButtons}>
+            <TouchableOpacity>
+              <Text style={styles.viewAllText}>View All</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.addButton}
+              onPress={() => setIsModalVisible(true)}
+            >
+              <Plus size={20} color={Colors.background} style={styles.addButtonIcon} />
+              <Text style={styles.addButtonText}>Add Prescription</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         
         {isLoading ? (
@@ -75,6 +97,61 @@ export default function PharmacyScreen() {
             </Text>
           </View>
         )}
+        
+        <Modal
+          visible={isModalVisible}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setIsModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Add New Prescription</Text>
+              
+              <TextInput
+                style={styles.input}
+                placeholder="Medication Name"
+                value={newPrescription.name}
+                onChangeText={(text) => setNewPrescription({...newPrescription, name: text})}
+              />
+              
+              <TextInput
+                style={styles.input}
+                placeholder="Dosage (e.g., 10mg)"
+                value={newPrescription.dosage}
+                onChangeText={(text) => setNewPrescription({...newPrescription, dosage: text})}
+              />
+              
+              <TextInput
+                style={styles.input}
+                placeholder="Frequency (e.g., Once daily)"
+                value={newPrescription.frequency}
+                onChangeText={(text) => setNewPrescription({...newPrescription, frequency: text})}
+              />
+              
+              <TextInput
+                style={[styles.input, styles.notesInput]}
+                placeholder="Additional Notes"
+                value={newPrescription.notes}
+                onChangeText={(text) => setNewPrescription({...newPrescription, notes: text})}
+                multiline
+              />
+              
+              <View style={styles.modalButtons}>
+                <Button 
+                  title="Cancel" 
+                  onPress={() => setIsModalVisible(false)} 
+                  color={Colors.textSecondary}
+                />
+                <Button 
+                  title="Save" 
+                  onPress={handleAddPrescription}
+                  color={Colors.primary}
+                />
+              </View>
+            </View>
+          </View>
+        </Modal>
         
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Pharmacy Options</Text>
@@ -188,9 +265,36 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...Typography.h4,
   },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
   viewAllText: {
     ...Typography.body,
     color: Colors.primary,
+  },
+  addButton: {
+    flexDirection: 'row',
+    backgroundColor: Colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  addButtonIcon: {
+    marginRight: 8,
+  },
+  addButtonText: {
+    ...Typography.body,
+    color: Colors.background,
+    fontWeight: '600',
+    fontSize: 16,
   },
   loadingContainer: {
     padding: 24,
@@ -306,5 +410,40 @@ const styles = StyleSheet.create({
   statusText: {
     ...Typography.caption,
     fontWeight: '500',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: Colors.background,
+    borderRadius: 12,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    ...Typography.h4,
+    marginBottom: 16,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: Colors.textSecondary,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    ...Typography.body,
+  },
+  notesInput: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+    marginTop: 16,
   },
 });
