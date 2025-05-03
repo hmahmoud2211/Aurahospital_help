@@ -13,13 +13,39 @@ export interface Medication {
   export interface MedicalRecord {
     id: string;
     patientId: string;
-    type: 'lab' | 'imaging' | 'note' | 'prescription' | 'document';
+    type: 'lab' | 'imaging' | 'note' | 'prescription' | 'document' | 'vaccination';
     title: string;
     date: string;
     provider: string;
     content?: string;
     fileUrl?: string;
     fileType?: string;
+    annotations?: Array<{
+      id: string;
+      doctorId: string;
+      text: string;
+      position: { x: number; y: number };
+      createdAt: string;
+    }>;
+    tags?: string[];
+    doctorNotes?: Array<{
+      id: string;
+      doctorId: string;
+      doctorName: string;
+      note: string;
+      createdAt: string;
+      isPrivate: boolean;
+    }>;
+    aiInsights?: {
+      summary: string;
+      status: 'normal' | 'abnormal' | 'critical' | 'inconclusive';
+      highlights: Array<{
+        parameter: string;
+        value: string;
+        status: 'normal' | 'abnormal' | 'critical';
+        explanation?: string;
+      }>;
+    };
   }
   
   export interface TreatmentPlan {
