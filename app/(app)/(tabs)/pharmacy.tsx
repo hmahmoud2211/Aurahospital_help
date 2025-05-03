@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,6 +8,7 @@ import {
   MessageCircle, Package, Repeat, ChevronRight, ShoppingBag, Users,
   AlertCircle, BarChart3, Calendar, User, Stethoscope
 } from 'lucide-react-native';
+
 import Colors from '@/constants/colors';
 import Typography from '@/constants/typography';
 import Header from '@/components/Header';
@@ -218,6 +220,7 @@ export default function PharmacyScreen() {
   const { user } = useAuthStore();
   const { medications, fetchMedications, requestMedicationRefill, isLoading } = useMedicalRecordsStore();
   
+
   const [activeTab, setActiveTab] = useState<typeof TABS[number]>('Pending');
   const [searchQuery, setSearchQuery] = useState('');
   const [inventory, setInventory] = useState(DUMMY_INVENTORY);
@@ -225,11 +228,13 @@ export default function PharmacyScreen() {
   const [showReorderModal, setShowReorderModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   
+
   useEffect(() => {
     if (user && user.role === 'pharmacist') {
       fetchMedications(user.id);
     }
   }, [user]);
+
 
   const handleConfirmPrescription = (prescriptionId: string) => {
     // In a real app, this would call an API to confirm the prescription
@@ -291,6 +296,7 @@ export default function PharmacyScreen() {
           <Text style={styles.statusText}>
             {prescription.status.charAt(0).toUpperCase() + prescription.status.slice(1)}
           </Text>
+
         </View>
       </View>
       
@@ -637,11 +643,13 @@ const styles = StyleSheet.create({
     ...Typography.h4,
     marginBottom: 16,
   },
+
   quickActions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginBottom: 24,
     justifyContent: 'space-between',
+
   },
   quickActionButton: {
     width: '48%',
@@ -923,5 +931,40 @@ const styles = StyleSheet.create({
   },
   confirmButton: {
     backgroundColor: Colors.primary,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: Colors.background,
+    borderRadius: 12,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    ...Typography.h4,
+    marginBottom: 16,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: Colors.textSecondary,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    ...Typography.body,
+  },
+  notesInput: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+    marginTop: 16,
   },
 });
