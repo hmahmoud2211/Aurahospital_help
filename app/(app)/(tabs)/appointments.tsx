@@ -70,7 +70,7 @@ export default function AppointmentsScreen() {
     <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
       <Header 
         title="Appointments" 
-        showBack={false}
+        showBack={true}
         rightComponent={
           <TouchableOpacity 
             style={styles.addButton}

@@ -166,10 +166,12 @@ export default function HomeScreen() {
                 {financialOverview.paymentStatus}
               </Text>
             </View>
-            <TouchableOpacity style={styles.paymentButton} onPress={() => router.push('/payments')}>
-              <DollarSign size={20} color={ExtendedColors.background || '#FFFFFF'} />
-              <Text style={styles.paymentButtonText}>Manage Payments</Text>
-            </TouchableOpacity>
+            <View style={styles.paymentButtonContainer}>
+              <TouchableOpacity style={styles.paymentButton} onPress={() => router.push('/records')}>
+                <DollarSign size={20} color={ExtendedColors.background || '#FFFFFF'} />
+                <Text style={styles.paymentButtonText}>Manage Payments</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ) : (
           <Text style={styles.noDataText}>No financial data available</Text>
@@ -223,36 +225,6 @@ export default function HomeScreen() {
               ]}>
                 {currentVitals.glucose > 250 || currentVitals.glucose < 70 ? 'CRITICAL' : 'NORMAL'}
               </Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.healthSummarySection}>
-          <Text style={styles.sectionTitle}>Quick Health Summary</Text>
-          <View style={styles.healthMetricsContainer}>
-            <View style={styles.healthMetricItem}>
-              <HealthMetricCard
-                title="Heart Rate"
-                value={currentVitals.heartRate}
-                unit="BPM"
-                isCritical={currentVitals.heartRate > 100 || currentVitals.heartRate < 60}
-              />
-            </View>
-            <View style={styles.healthMetricItem}>
-              <HealthMetricCard
-                title="Blood Pressure"
-                value={`${currentVitals.bloodPressure.systolic}/${currentVitals.bloodPressure.diastolic}`}
-                unit="mmHg"
-                isCritical={currentVitals.bloodPressure.systolic > 180 || currentVitals.bloodPressure.diastolic > 120}
-              />
-            </View>
-            <View style={styles.healthMetricItem}>
-              <HealthMetricCard
-                title="Glucose"
-                value={currentVitals.glucose}
-                unit="mg/dL"
-                isCritical={currentVitals.glucose > 250 || currentVitals.glucose < 70}
-              />
             </View>
           </View>
         </View>
@@ -504,66 +476,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 32,
-  },
-  emergencyBanner: {
-    flexDirection: 'row',
-    backgroundColor: ExtendedColors.errorLight,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  emergencyText: {
-    ...Typography.body,
-    color: ExtendedColors.error,
-    flex: 1,
-    marginHorizontal: 12,
-  },
-  emergencyCallButton: {
-    backgroundColor: ExtendedColors.error,
-    padding: 8,
-    borderRadius: 8,
-  },
-  criticalCareSection: {
-    marginBottom: 24,
-  },
-  criticalCareContainer: {
-    backgroundColor: ExtendedColors.card || '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  criticalCareItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: ExtendedColors.border || '#e0e0e0',
-  },
-  criticalCareLabel: {
-    ...Typography.body,
-    color: ExtendedColors.text || '#000000',
-  },
-  criticalCareValue: {
-    ...Typography.body,
-    fontWeight: '500',
-  },
-  critical: {
-    color: ExtendedColors.error,
-  },
-  normal: {
-    color: ExtendedColors.success || '#008000',
   },
   welcomeSection: {
     flexDirection: 'row',
@@ -572,18 +484,19 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   welcomeText: {
-    ...Typography.body,
-    color: ExtendedColors.textSecondary || '#808080',
+    fontSize: 16,
+    color: ExtendedColors.textSecondary || '#707070',
   },
   userName: {
-    ...Typography.h2,
+    fontSize: 24,
+    fontWeight: 'bold',
     color: ExtendedColors.text || '#000000',
   },
   notificationButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: ExtendedColors.card || '#ffffff',
+    backgroundColor: ExtendedColors.card || '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -592,22 +505,75 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  healthSummarySection: {
+  emergencyBanner: {
+    backgroundColor: ExtendedColors.errorLight || '#ffebee',
+    padding: 16,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  emergencyText: {
+    fontSize: 14,
+    color: ExtendedColors.text || '#000000',
+    marginBottom: 8,
+  },
+  emergencyCallButton: {
+    backgroundColor: ExtendedColors.error || '#d32f2f',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  emergencyButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  criticalCareSection: {
+    backgroundColor: ExtendedColors.card || '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   sectionTitle: {
-    ...Typography.h4,
+    fontSize: 18,
+    fontWeight: 'bold',
     marginBottom: 16,
     color: ExtendedColors.text || '#000000',
   },
-  healthMetricsContainer: {
+  criticalCareContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: -8,
+    justifyContent: 'space-between',
   },
-  healthMetricItem: {
-    width: '33.33%',
-    paddingHorizontal: 8,
+  criticalCareItem: {
+    width: '48%',
+    marginBottom: 12,
+  },
+  criticalCareLabel: {
+    fontSize: 14,
+    color: ExtendedColors.textSecondary || '#707070',
+    marginBottom: 4,
+  },
+  criticalCareValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  normal: {
+    color: ExtendedColors.success || '#4caf50',
+  },
+  critical: {
+    color: ExtendedColors.error || '#d32f2f',
   },
   financialOverviewSection: {
     marginBottom: 24,
@@ -650,7 +616,7 @@ const styles = StyleSheet.create({
   danger: {
     color: '#FF0000',
   },
-  paymentButton: {
+  paymentButtonContainer: {
     flexDirection: 'row',
     backgroundColor: '#007BFF',
     padding: 10,
@@ -658,6 +624,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 12,
+  },
+  paymentButton: {
+    flexDirection: 'row',
+    backgroundColor: '#007BFF',
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 4,
   },
   paymentButtonText: {
     ...Typography.body,
@@ -668,25 +643,34 @@ const styles = StyleSheet.create({
   quickActionsSection: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'space-between',
     marginBottom: 24,
-    marginHorizontal: -8,
   },
   actionCard: {
-    width: '25%',
-    paddingHorizontal: 8,
+    width: '48%',
+    backgroundColor: ExtendedColors.card || '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   actionIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
   },
   actionText: {
-    ...Typography.caption,
-    textAlign: 'center',
+    fontSize: 14,
+    color: ExtendedColors.text || '#000000',
+    fontWeight: '500',
   },
   upcomingAppointmentsSection: {
     marginBottom: 24,
@@ -695,16 +679,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   seeAllText: {
-    ...Typography.body,
+    fontSize: 14,
     color: ExtendedColors.primary || '#007BFF',
   },
   noAppointmentsContainer: {
-    backgroundColor: ExtendedColors.card || '#ffffff',
+    backgroundColor: ExtendedColors.card || '#FFFFFF',
     borderRadius: 12,
-    padding: 24,
+    padding: 16,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -713,54 +697,45 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   noAppointmentsText: {
-    ...Typography.body,
-    color: ExtendedColors.textSecondary || '#808080',
-    marginBottom: 16,
+    fontSize: 14,
+    color: ExtendedColors.textSecondary || '#707070',
+    marginBottom: 12,
   },
   bookAppointmentButton: {
     backgroundColor: ExtendedColors.primary || '#007BFF',
-    paddingHorizontal: 16,
     paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: 8,
   },
   bookAppointmentText: {
-    ...Typography.body,
-    color: ExtendedColors.background || '#FFFFFF',
+    color: '#FFFFFF',
     fontWeight: '500',
   },
   todayScheduleSection: {
-    marginBottom: 24,
-  },
-  scheduleContainer: {
-    backgroundColor: ExtendedColors.card || '#ffffff',
+    backgroundColor: ExtendedColors.card || '#FFFFFF',
     borderRadius: 12,
     padding: 16,
+    marginBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
+  scheduleContainer: {
+    
+  },
   timeSlots: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     marginBottom: 16,
   },
   timeSlot: {
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-  },
-  timeSlotActive: {
-    backgroundColor: ExtendedColors.primaryLight || '#E0F7FA',
-  },
-  timeSlotCurrent: {
-    borderWidth: 1,
-    borderColor: ExtendedColors.primary || '#007BFF',
   },
   timeSlotText: {
-    ...Typography.body,
-    color: ExtendedColors.primary || '#007BFF',
+    fontSize: 14,
+    color: ExtendedColors.textSecondary || '#707070',
     marginBottom: 4,
   },
   timeSlotDot: {
@@ -769,9 +744,16 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: ExtendedColors.primary || '#007BFF',
   },
+  timeSlotActive: {
+    
+  },
+  timeSlotCurrent: {
+    
+  },
   nextPatientText: {
-    ...Typography.caption,
-    color: ExtendedColors.textSecondary || '#808080',
+    fontSize: 16,
+    fontWeight: '500',
+    color: ExtendedColors.text || '#000000',
   },
   patientUpdatesSection: {
     marginBottom: 24,
@@ -837,7 +819,8 @@ const styles = StyleSheet.create({
   },
   noDataText: {
     ...Typography.body,
-    color: ExtendedColors.textSecondary || '#808080',
+    color: ExtendedColors.textSecondary || '#707070',
     textAlign: 'center',
+    marginVertical: 16,
   },
 });

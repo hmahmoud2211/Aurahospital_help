@@ -11,6 +11,7 @@ interface HeaderProps {
   showBack?: boolean;
   showNotification?: boolean;
   rightComponent?: React.ReactNode;
+  onBackPress?: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -18,15 +19,24 @@ const Header: React.FC<HeaderProps> = ({
   showBack = true,
   showNotification = false,
   rightComponent,
+  onBackPress,
 }) => {
   const router = useRouter();
+
+  const handleBackPress = () => {
+    if (onBackPress) {
+      onBackPress();
+    } else {
+      router.back();
+    }
+  };
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <View style={styles.container}>
         <View style={styles.leftContainer}>
           {showBack && (
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
               <ArrowLeft size={24} color={Colors.background} />
             </TouchableOpacity>
           )}

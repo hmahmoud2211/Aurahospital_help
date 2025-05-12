@@ -143,7 +143,7 @@ export default function SignupScreen() {
                         role === 'doctor' ? tw`text-gray-800` : tw`text-white`
                       ]}
                     >
-                      Doctor
+                      Other
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -165,7 +165,7 @@ export default function SignupScreen() {
 
                 <Animated.View entering={FadeInDown.delay(100).duration(1000).springify()} 
                   style={[
-                    tw`bg-white/80 rounded-2xl w-full mb-4 overflow-hidden`,
+                    tw`bg-white/90 rounded-2xl w-full mb-4 overflow-hidden`,
                     { height: 60 }
                   ]}>
                   <TextInput 
@@ -182,7 +182,7 @@ export default function SignupScreen() {
 
                 <Animated.View entering={FadeInDown.delay(200).duration(1000).springify()} 
                   style={[
-                    tw`bg-white/80 rounded-2xl w-full mb-4 overflow-hidden`,
+                    tw`bg-white/90 rounded-2xl w-full mb-4 overflow-hidden`,
                     { height: 60 }
                   ]}>
                   <TextInput 
@@ -201,7 +201,7 @@ export default function SignupScreen() {
 
                 <Animated.View entering={FadeInDown.delay(300).duration(1000).springify()} 
                   style={[
-                    tw`bg-white/80 rounded-2xl w-full mb-4 overflow-hidden`,
+                    tw`bg-white/90 rounded-2xl w-full mb-4 overflow-hidden`,
                     { height: 60 }
                   ]}>
                   <TextInput 
@@ -218,7 +218,7 @@ export default function SignupScreen() {
 
                 <Animated.View entering={FadeInDown.delay(400).duration(1000).springify()} 
                   style={[
-                    tw`bg-white/80 rounded-2xl w-full mb-4 overflow-hidden`,
+                    tw`bg-white/90 rounded-2xl w-full mb-4 overflow-hidden`,
                     { height: 60 }
                   ]}>
                   <TextInput 
@@ -236,7 +236,7 @@ export default function SignupScreen() {
 
                 <Animated.View entering={FadeInDown.delay(500).duration(1000).springify()} 
                   style={[
-                    tw`bg-white/80 rounded-2xl w-full mb-4 overflow-hidden`,
+                    tw`bg-white/90 rounded-2xl w-full mb-4 overflow-hidden`,
                     { height: 60 }
                   ]}>
                   <TextInput 
@@ -255,7 +255,7 @@ export default function SignupScreen() {
                   <>
                     <Animated.View entering={FadeInDown.delay(600).duration(1000).springify()}
                       style={[
-                        tw`bg-white/80 rounded-2xl w-full mb-4 overflow-hidden`,
+                        tw`bg-white/90 rounded-2xl w-full mb-4 overflow-hidden`,
                         { height: 60 }
                       ]}>
                       <TextInput
@@ -272,7 +272,7 @@ export default function SignupScreen() {
 
                     <Animated.View entering={FadeInDown.delay(700).duration(1000).springify()}
                       style={[
-                        tw`bg-white/80 rounded-2xl w-full mb-4 overflow-hidden`,
+                        tw`bg-white/90 rounded-2xl w-full mb-4 overflow-hidden`,
                         { height: 60 }
                       ]}>
                       <TextInput
@@ -289,7 +289,7 @@ export default function SignupScreen() {
 
                     <Animated.View entering={FadeInDown.delay(800).duration(1000).springify()}
                       style={[
-                        tw`bg-white/80 rounded-2xl w-full mb-4 overflow-hidden`,
+                        tw`bg-white/90 rounded-2xl w-full mb-4 overflow-hidden`,
                         { height: 60 }
                       ]}>
                       <TextInput
@@ -308,7 +308,7 @@ export default function SignupScreen() {
 
                 <Animated.View entering={FadeInDown.delay(900).duration(1000).springify()} 
                   style={[
-                    tw`bg-white/80 rounded-2xl w-full mb-4 overflow-hidden`,
+                    tw`bg-white/90 rounded-2xl w-full mb-4 overflow-hidden`,
                     { height: 60 }
                   ]}>
                   <TextInput 
@@ -326,7 +326,7 @@ export default function SignupScreen() {
 
                 <Animated.View entering={FadeInDown.delay(1000).duration(1000).springify()} 
                   style={[
-                    tw`bg-white/80 rounded-2xl w-full mb-6 overflow-hidden`,
+                    tw`bg-white/90 rounded-2xl w-full mb-6 overflow-hidden`,
                     { height: 60 }
                   ]}>
                   <TextInput 
@@ -342,7 +342,7 @@ export default function SignupScreen() {
                   />
                 </Animated.View>
 
-                <Animated.View entering={FadeInDown.delay(1100).duration(1000).springify()} style={tw`w-full mb-6`}>
+                <Animated.View entering={FadeInDown.delay(1100).duration(1000).springify()} style={tw`w-full mb-2`}>
                   <TouchableOpacity 
                     onPress={handleRegister}
                     disabled={isLoading}
@@ -356,10 +356,10 @@ export default function SignupScreen() {
                   </TouchableOpacity>
                 </Animated.View>
 
-                <Animated.View entering={FadeInDown.delay(1200).duration(1000).springify()} style={tw`flex-row justify-center items-center space-x-2`}>
-                  <Text style={tw`text-base`}>Already have an account?</Text>
+                <Animated.View entering={FadeInDown.delay(1200).duration(1000).springify()} style={tw`flex-row justify-center items-center space-x-2 mt-2 mb-6`}>
+                  <Text style={tw`text-base font-medium`}>Already have an account?</Text>
                   <TouchableOpacity onPress={() => router.push('/')}>
-                    <Text style={tw`text-sky-600 font-semibold text-base`}>Login</Text>
+                    <Text style={tw`text-sky-600 font-semibold text-lg`}>Login</Text>
                   </TouchableOpacity>
                 </Animated.View>
               </View>

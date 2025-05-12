@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, Dimensions, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, Dimensions, ActivityIndicator, Modal, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { FileText, Plus, Search, Calendar, Tag, AlertCircle, ChevronDown, ChevronUp, Brain } from 'lucide-react-native';
+import { FileText, Plus, Search, Calendar, ChevronDown, ChevronUp, Brain, Users, X } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import Typography from '@/constants/typography';
 import Header from '@/components/Header';
@@ -12,15 +12,6 @@ import { useMedicalRecordsStore } from '@/store/medical-records-store';
 import { MedicalRecord } from '@/types/medical';
 import { dummyMedicalRecords } from '@/data/dummyMedicalRecords';
 
-const AVAILABLE_TAGS = [
-  'Urgent',
-  'Follow-up',
-  'Review',
-  'Important',
-  'Chronic',
-  'Acute',
-];
-
 const VIEW_MODES = ['list', 'timeline'] as const;
 
 const RECENTLY_SHARED_WITH = [
@@ -29,6 +20,61 @@ const RECENTLY_SHARED_WITH = [
   { id: '3', name: 'Dr. Emily Wong', initials: 'EW', color: '#9C27B0' },
   { id: '4', name: 'Dr. James Wilson', initials: 'JW', color: '#FF9800' },
 ];
+
+// Mock patients for doctor view
+const DOCTOR_PATIENTS = [
+  { id: 'p1', name: 'Sarah Johnson', age: 42, lastVisit: '2023-11-15' },
+  { id: 'p2', name: 'Robert Garcia', age: 65, lastVisit: '2023-11-10' },
+  { id: 'p3', name: 'Emily Chen', age: 28, lastVisit: '2023-11-05' },
+  { id: 'p4', name: 'Michael Wilson', age: 51, lastVisit: '2023-10-28' },
+  { id: 'p5', name: 'Jessica Brown', age: 33, lastVisit: '2023-10-20' },
+];
+
+// Mock patient records
+const PATIENT_RECORDS: Record<string, MedicalRecord[]> = {
+  'p1': [
+    {
+      id: 'p1-record1',
+      patientId: 'p1',
+      type: 'lab',
+      title: 'Complete Blood Count',
+      date: '2023-11-15',
+      provider: 'Memorial Hospital',
+      content: 'Normal results',
+    },
+    {
+      id: 'p1-record2',
+      patientId: 'p1',
+      type: 'imaging',
+      title: 'Chest X-Ray',
+      date: '2023-10-20',
+      provider: 'Memorial Hospital',
+      content: 'No abnormalities detected',
+    },
+  ],
+  'p2': [
+    {
+      id: 'p2-record1',
+      patientId: 'p2',
+      type: 'lab',
+      title: 'Lipid Panel',
+      date: '2023-11-10',
+      provider: 'Memorial Hospital',
+      content: 'Elevated cholesterol',
+    },
+  ],
+  'p3': [
+    {
+      id: 'p3-record1',
+      patientId: 'p3',
+      type: 'document',
+      title: 'Allergy Test Results',
+      date: '2023-11-05',
+      provider: 'Allergy Specialists',
+      content: 'Positive for pollen and dust mites',
+    },
+  ],
+};
 
 export default function RecordsScreen() {
   const router = useRouter();
@@ -40,21 +86,39 @@ export default function RecordsScreen() {
   
   const [filter, setFilter] = useState<'all' | 'lab' | 'imaging' | 'document' | 'vaccination'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<typeof VIEW_MODES[number]>('list');
   const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({
     start: null,
     end: null,
   });
   
+  // States for doctor's patient view
+  const [isViewingPatients, setIsViewingPatients] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
+  const [patientViewModalVisible, setPatientViewModalVisible] = useState(false);
+  
   useEffect(() => {
-    if (user && user.role === 'patient') {
+    if (user) {
+      // If doctor, fetch their own records
+      // In a real app, you would have a separate endpoint for doctor's personal records
       fetchMedicalRecords(user.id);
     }
   }, [user]);
   
   const filteredRecords = () => {
+    // If doctor is viewing a specific patient's records
+    if (user?.role === 'doctor' && isViewingPatients && selectedPatient) {
+      const patientRecords = PATIENT_RECORDS[selectedPatient] || [];
+      return filterRecordsByQueryAndType(patientRecords);
+    }
+    
+    // Otherwise show user's own records
     let filtered = records;
+    return filterRecordsByQueryAndType(filtered);
+  };
+  
+  const filterRecordsByQueryAndType = (recordsToFilter: MedicalRecord[]) => {
+    let filtered = recordsToFilter;
     
     // Filter by type
     if (filter !== 'all') {
@@ -69,13 +133,6 @@ export default function RecordsScreen() {
         record.type.toLowerCase().includes(query) ||
         record.provider.toLowerCase().includes(query) ||
         record.tags?.some(tag => tag.toLowerCase().includes(query))
-      );
-    }
-    
-    // Filter by tags
-    if (selectedTags.length > 0) {
-      filtered = filtered.filter(record =>
-        record.tags?.some(tag => selectedTags.includes(tag))
       );
     }
     
@@ -102,6 +159,17 @@ export default function RecordsScreen() {
   const handleDownloadRecord = (record: MedicalRecord) => {
     // In a real app, this would download the file
     console.log('Download record:', record);
+  };
+  
+  const handleViewPatientRecords = (patientId: string) => {
+    setSelectedPatient(patientId);
+    setIsViewingPatients(true);
+    setPatientViewModalVisible(false);
+  };
+  
+  const handleBackToOwnRecords = () => {
+    setIsViewingPatients(false);
+    setSelectedPatient(null);
   };
 
   const renderTimelineView = () => {
@@ -144,12 +212,20 @@ export default function RecordsScreen() {
       </View>
     );
   };
+  
+  // Get the selected patient name
+  const getSelectedPatientName = () => {
+    if (!selectedPatient) return '';
+    const patient = DOCTOR_PATIENTS.find(p => p.id === selectedPatient);
+    return patient ? patient.name : '';
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
       <Header 
-        title="Medical Records" 
-        showBack={false}
+        title={isViewingPatients ? `Records: ${getSelectedPatientName()}` : "Medical Records"} 
+        showBack={isViewingPatients}
+        onBackPress={isViewingPatients ? handleBackToOwnRecords : undefined}
         rightComponent={
           <TouchableOpacity 
             style={styles.addButton}
@@ -173,19 +249,44 @@ export default function RecordsScreen() {
         </View>
       </View>
       
-      <View style={styles.recentlySharedContainer}>
-        <Text style={styles.sectionTitle}>Recently Shared With</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {RECENTLY_SHARED_WITH.map((person) => (
-            <View key={person.id} style={styles.personContainer}>
-              <View style={[styles.initialsCircle, { backgroundColor: person.color }]}>
-                <Text style={styles.initials}>{person.initials}</Text>
+      {/* Doctor's patients view button */}
+      {user?.role === 'doctor' && (
+        <View style={styles.doctorActionsContainer}>
+          {isViewingPatients ? (
+            <TouchableOpacity 
+              style={styles.doctorActionButton}
+              onPress={handleBackToOwnRecords}
+            >
+              <Text style={styles.doctorActionButtonText}>View My Records</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity 
+              style={styles.doctorActionButton}
+              onPress={() => setPatientViewModalVisible(true)}
+            >
+              <Users size={16} color={Colors.primary} style={styles.doctorActionButtonIcon} />
+              <Text style={styles.doctorActionButtonText}>View Patient Records</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+      
+      {/* Only show recently shared with for personal records */}
+      {!isViewingPatients && (
+        <View style={styles.recentlySharedContainer}>
+          <Text style={styles.sectionTitle}>Recently Shared With</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {RECENTLY_SHARED_WITH.map((person) => (
+              <View key={person.id} style={styles.personContainer}>
+                <View style={[styles.initialsCircle, { backgroundColor: person.color }]}>
+                  <Text style={styles.initials}>{person.initials}</Text>
+                </View>
+                <Text style={styles.personName} numberOfLines={1}>{person.name}</Text>
               </View>
-              <Text style={styles.personName} numberOfLines={1}>{person.name}</Text>
-            </View>
-          ))}
-        </ScrollView>
-      </View>
+            ))}
+          </ScrollView>
+        </View>
+      )}
       
       <View style={styles.filterContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -300,46 +401,15 @@ export default function RecordsScreen() {
           onPress={() => router.push('/medical-records/upload')}
         >
           <Plus size={16} color={Colors.background} />
-          <Text style={styles.addDocumentText}>Add Document</Text>
+          <Text style={styles.addDocumentText}>Upload Document</Text>
         </TouchableOpacity>
-      </View>
-
-      <View style={styles.tagsContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {AVAILABLE_TAGS.map((tag) => (
-            <TouchableOpacity
-              key={tag}
-              style={[
-                styles.tagButton,
-                selectedTags.includes(tag) && styles.tagButtonActive,
-              ]}
-              onPress={() => {
-                setSelectedTags(prev =>
-                  prev.includes(tag)
-                    ? prev.filter(t => t !== tag)
-                    : [...prev, tag]
-                );
-              }}
-            >
-              <Tag size={16} color={selectedTags.includes(tag) ? Colors.primary : Colors.textSecondary} />
-              <Text
-                style={[
-                  styles.tagText,
-                  selectedTags.includes(tag) && styles.tagTextActive,
-                ]}
-              >
-                {tag}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
       </View>
       
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.loadingText}>Loading your medical records...</Text>
+            <Text style={styles.loadingText}>Loading medical records...</Text>
           </View>
         ) : filteredRecords().length > 0 ? (
           viewMode === 'list' ? (
@@ -347,7 +417,7 @@ export default function RecordsScreen() {
               .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
               .map((record) => (
                 <MedicalRecordCard 
-                  key={record.id} 
+                  key={record.id}
                   record={record}
                   onView={handleViewRecord}
                   onShare={handleShareRecord}
@@ -358,26 +428,62 @@ export default function RecordsScreen() {
             renderTimelineView()
           )
         ) : (
-          <View style={styles.emptyContainer}>
-            <View style={styles.emptyIconContainer}>
-              <FileText size={48} color={Colors.textLight} />
-            </View>
-            <Text style={styles.emptyTitle}>No records found</Text>
-            <Text style={styles.emptyText}>
-              {searchQuery || selectedTags.length > 0 || filter !== 'all'
-                ? "No records match your search criteria. Try adjusting your filters."
-                : "You don't have any medical records yet. Add your first record by clicking the + button."}
+          <View style={styles.noRecordsContainer}>
+            <Brain size={64} color={Colors.textSecondary} />
+            <Text style={styles.noRecordsTitle}>No Medical Records Found</Text>
+            <Text style={styles.noRecordsText}>
+              {isViewingPatients 
+                ? "This patient doesn't have any medical records yet or none match your current filters."
+                : "You haven't uploaded any medical records yet or none match your current filters."}
             </Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.uploadButton}
               onPress={() => router.push('/medical-records/upload')}
             >
-              <Plus size={20} color={Colors.background} style={styles.uploadButtonIcon} />
-              <Text style={styles.uploadButtonText}>Upload New Record</Text>
+              <Text style={styles.uploadButtonText}>Upload Document</Text>
             </TouchableOpacity>
           </View>
         )}
       </ScrollView>
+      
+      {/* Patient Selection Modal for Doctors */}
+      <Modal
+        visible={patientViewModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setPatientViewModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Patient</Text>
+              <TouchableOpacity
+                onPress={() => setPatientViewModalVisible(false)}
+                style={styles.modalCloseButton}
+              >
+                <X size={24} color={Colors.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <FlatList
+              data={DOCTOR_PATIENTS}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.patientItem}
+                  onPress={() => handleViewPatientRecords(item.id)}
+                >
+                  <View style={styles.patientItemContent}>
+                    <Text style={styles.patientName}>{item.name}</Text>
+                    <Text style={styles.patientDetails}>Age: {item.age} • Last Visit: {item.lastVisit}</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+              contentContainerStyle={styles.patientList}
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -388,17 +494,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   addButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
   },
   searchContainer: {
     paddingHorizontal: 16,
@@ -411,34 +512,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.background,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 48,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 40,
   },
   searchInput: {
     flex: 1,
-    marginLeft: 12,
-    fontSize: 16,
+    marginLeft: 8,
+    ...Typography.body,
     color: Colors.text,
   },
   filterContainer: {
+    paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: Colors.card,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
   filterButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
     backgroundColor: Colors.background,
-    marginHorizontal: 6,
-    marginVertical: 4,
+    marginRight: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -447,14 +543,9 @@ const styles = StyleSheet.create({
   },
   filterButtonActive: {
     backgroundColor: Colors.primary,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
   },
   filterText: {
-    ...Typography.body,
+    ...Typography.caption,
     color: Colors.textSecondary,
     fontWeight: '600',
   },
@@ -472,174 +563,66 @@ const styles = StyleSheet.create({
   viewModeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 24,
-    backgroundColor: Colors.background,
-    marginRight: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginRight: 8,
   },
   viewModeButtonActive: {
     backgroundColor: `${Colors.primary}15`,
-    borderWidth: 1,
-    borderColor: Colors.primary,
   },
   viewModeText: {
-    ...Typography.body,
+    ...Typography.caption,
     color: Colors.textSecondary,
     marginLeft: 8,
-    fontWeight: '600',
   },
   viewModeTextActive: {
     color: Colors.primary,
-  },
-  tagsContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: Colors.card,
-  },
-  tagButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: Colors.background,
-    marginRight: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  tagButtonActive: {
-    backgroundColor: `${Colors.primary}15`,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-  },
-  tagText: {
-    ...Typography.caption,
-    color: Colors.textSecondary,
-    marginLeft: 6,
     fontWeight: '600',
-  },
-  tagTextActive: {
-    color: Colors.primary,
   },
   scrollContent: {
     padding: 16,
     paddingBottom: 32,
   },
-  timelineContainer: {
-    paddingLeft: 32,
-    paddingRight: 16,
-  },
-  timelineMonthHeader: {
-    marginVertical: 20,
-    marginLeft: -32,
-    paddingLeft: 32,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.primary,
-  },
-  timelineMonthText: {
-    ...Typography.h4,
-    color: Colors.primary,
-    fontWeight: '600',
-  },
-  timelineItem: {
-    position: 'relative',
-    marginBottom: 20,
-  },
-  timelineLine: {
-    position: 'absolute',
-    left: -16,
-    top: 0,
-    bottom: 0,
-    width: 2,
-    backgroundColor: `${Colors.primary}30`,
-  },
-  timelineDot: {
-    position: 'absolute',
-    left: -20,
-    top: 24,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Colors.primary,
-    borderWidth: 2,
-    borderColor: Colors.background,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  timelineContent: {
-    marginLeft: 16,
-  },
   loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
+    padding: 24,
     alignItems: 'center',
-    padding: 32,
-    minHeight: 300,
   },
   loadingText: {
     ...Typography.body,
     color: Colors.textSecondary,
     marginTop: 16,
   },
-  emptyContainer: {
+  noRecordsContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
+    padding: 24,
     marginTop: 32,
   },
-  emptyIconContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: `${Colors.primary}10`,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  emptyTitle: {
+  noRecordsTitle: {
     ...Typography.h3,
     marginBottom: 12,
     textAlign: 'center',
   },
-  emptyText: {
+  noRecordsText: {
     ...Typography.body,
     color: Colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   uploadButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.primary,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 12,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    borderRadius: 8,
   },
   uploadButtonText: {
     ...Typography.body,
     color: Colors.background,
     fontWeight: '600',
-  },
-  uploadButtonIcon: {
-    marginRight: 8,
   },
   recentlySharedContainer: {
     paddingVertical: 16,
@@ -649,14 +632,13 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
   },
   sectionTitle: {
-    ...Typography.h5,
+    ...Typography.h4,
     marginBottom: 12,
-    color: Colors.text,
   },
   personContainer: {
     alignItems: 'center',
     marginRight: 16,
-    width: 72,
+    width: 70,
   },
   initialsCircle: {
     width: 48,
@@ -664,41 +646,142 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    marginBottom: 8,
   },
   initials: {
     ...Typography.body,
     color: Colors.background,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
   personName: {
     ...Typography.caption,
     textAlign: 'center',
-    color: Colors.textSecondary,
   },
   addDocumentButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.primary,
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
+    paddingVertical: 8,
+    borderRadius: 8,
     marginLeft: 'auto',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
   },
   addDocumentText: {
-    ...Typography.body,
+    ...Typography.caption,
     color: Colors.background,
     marginLeft: 8,
     fontWeight: '600',
+  },
+  timelineContainer: {
+    paddingTop: 8,
+  },
+  timelineMonthHeader: {
+    paddingVertical: 8,
+    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  timelineMonthText: {
+    ...Typography.h5,
+    color: Colors.primary,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  timelineLine: {
+    position: 'absolute',
+    left: 12,
+    top: 24,
+    bottom: 0,
+    width: 2,
+    backgroundColor: Colors.border,
+  },
+  timelineDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.primary,
+    marginRight: 12,
+  },
+  timelineContent: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  doctorActionsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: Colors.card,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    justifyContent: 'flex-end',
+  },
+  doctorActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  doctorActionButtonIcon: {
+    marginRight: 8,
+  },
+  doctorActionButtonText: {
+    ...Typography.caption,
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    backgroundColor: Colors.background,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  modalTitle: {
+    ...Typography.h4,
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  patientList: {
+    padding: 16,
+  },
+  patientItem: {
+    flexDirection: 'row',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    alignItems: 'center',
+  },
+  patientItemContent: {
+    flex: 1,
+  },
+  patientName: {
+    ...Typography.body,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  patientDetails: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
   },
 });

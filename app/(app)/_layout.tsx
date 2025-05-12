@@ -53,6 +53,19 @@ export default function AppLayout() {
                     title: "Edit Profile",
                 }}
             />
+            <Stack.Screen
+                name="medical-records/upload"
+                options={{
+                    title: "Upload Document",
+                    headerShown: false,
+                }}
+            />
+            <Stack.Screen
+                name="medical-records/[id]"
+                options={{
+                    title: "Document Details",
+                }}
+            />
         </Stack>
     );
 }
