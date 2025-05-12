@@ -21,6 +21,7 @@ interface MedicalRecordsState {
   requestMedicationRefill: (medicationId: string) => Promise<boolean>;
   deleteRecord: (recordId: string) => Promise<boolean>;
   selectRecord: (recordId: string) => void;
+  addPrescription: (prescription: Partial<Medication>) => Promise<boolean>;
 }
 
 export const useMedicalRecordsStore = create<MedicalRecordsState>()(
@@ -165,6 +166,40 @@ export const useMedicalRecordsStore = create<MedicalRecordsState>()(
         const { records } = get();
         const record = records.find(r => r.id === recordId) || null;
         set({ selectedRecord: record });
+      },
+      
+      addPrescription: async (prescription) => {
+        set({ isLoading: true, error: null });
+        
+        try {
+          // Simulate API call
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // In a real app, we would add the prescription to a server
+          // For now, just add it to our local state
+          const newMedication: Medication = {
+            id: prescription.id || `med-${Date.now()}`,
+            patientId: prescription.patientId || '',
+            name: prescription.name || 'Untitled Medication',
+            dosage: prescription.dosage || '',
+            frequency: prescription.frequency || '',
+            startDate: prescription.startDate || new Date().toISOString(),
+            endDate: prescription.endDate || '',
+            instructions: prescription.instructions || '',
+            status: prescription.status || 'active',
+            refillsRemaining: prescription.refillsRemaining || 0,
+          };
+          
+          set(state => ({
+            medications: [...state.medications, newMedication],
+            isLoading: false
+          }));
+          
+          return true;
+        } catch (error) {
+          set({ error: 'Failed to add prescription', isLoading: false });
+          return false;
+        }
       },
     }),
     {

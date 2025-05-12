@@ -1,13 +1,16 @@
 export interface Medication {
     id: string;
+    patientId: string;
     name: string;
     dosage: string;
     frequency: string;
     startDate: string;
     endDate?: string;
-    refills: number;
+    refills?: number;
+    refillsRemaining?: number;
     instructions?: string;
-    isActive: boolean;
+    isActive?: boolean;
+    status?: 'active' | 'completed' | 'cancelled' | 'pending';
   }
   
   export interface MedicalRecord {

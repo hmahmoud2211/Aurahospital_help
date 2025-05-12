@@ -4,6 +4,7 @@ import tw from 'twrnc';
 import { StatusBar } from 'expo-status-bar'
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
+import { ArrowLeft } from 'lucide-react-native';
 
 export default function ForgotPasswordScreen() {
     const router = useRouter();
@@ -13,6 +14,14 @@ export default function ForgotPasswordScreen() {
         <View style={tw`bg-white h-full w-full`}>
             <StatusBar style="light" />
             <Image style={tw`h-full w-full absolute`} source={require('../assets/hospital.png')} />
+
+            {/* Back button */}
+            <TouchableOpacity 
+                style={tw`absolute top-12 left-4 z-10 bg-white/20 p-2 rounded-full`}
+                onPress={() => router.back()}
+            >
+                <ArrowLeft size={24} color="#000" />
+            </TouchableOpacity>
 
             {/* title and form */}
             <View style={tw`h-full w-full flex justify-center items-center px-8`}> 

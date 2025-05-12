@@ -5,14 +5,12 @@ import { StatusBar } from 'expo-status-bar'
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/auth-store';
-import { UserRole } from '@/types/user';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
     const router = useRouter();
     const { login, isLoading, error, clearError, isAuthenticated } = useAuthStore();
     const {width} = Dimensions.get('window');
-    const [role, setRole] = useState<UserRole>('patient');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [validationError, setValidationError] = useState('');
@@ -70,46 +68,9 @@ export default function LoginScreen() {
                                     Login 
                                 </Animated.Text>
                             </View>
-                            {/* Role toggle */}
-                            <Animated.View entering={FadeInDown.delay(100).duration(1000).springify()} style={tw`w-full mb-6 items-center`}>
-                                <View style={[tw`flex-row rounded-xl overflow-hidden bg-gray-100`, { maxWidth: 400 }]}>
-                                    <TouchableOpacity
-                                        onPress={() => setRole('patient')}
-                                        style={[
-                                            tw`py-3 px-10`,
-                                            role === 'patient' ? tw`bg-gray-100` : tw`bg-blue-500`
-                                        ]}
-                                    >
-                                        <Text
-                                            style={[
-                                                tw`text-base font-medium`,
-                                                role === 'patient' ? tw`text-gray-800` : tw`text-white`
-                                            ]}
-                                        >
-                                            Patient
-                                        </Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        onPress={() => setRole('doctor')}
-                                        style={[
-                                            tw`py-3 px-10`,
-                                            role === 'doctor' ? tw`bg-gray-100` : tw`bg-blue-500`
-                                        ]}
-                                    >
-                                        <Text
-                                            style={[
-                                                tw`text-base font-medium`,
-                                                role === 'doctor' ? tw`text-gray-800` : tw`text-white`
-                                            ]}
-                                        >
-                                            Doctor
-                                        </Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </Animated.View>
 
                             {/* form */}
-                            <View key={role} style={[tw`w-full`, { maxWidth: 400 }]}>
+                            <View style={[tw`w-full`, { maxWidth: 400 }]}>
                                 {validationError ? (
                                     <Animated.View entering={FadeInDown.delay(100).duration(1000).springify()} style={tw`w-full mb-4`}>
                                         <Text style={tw`text-red-500 text-center`}>{validationError}</Text>
@@ -124,7 +85,7 @@ export default function LoginScreen() {
                                 
                                 <Animated.View entering={FadeInDown.duration(1000).springify()} 
                                     style={[
-                                        tw`bg-white/80 rounded-2xl w-full mb-4 overflow-hidden`,
+                                        tw`bg-white/90 rounded-2xl w-full mb-4 overflow-hidden`,
                                         { height: 60 }
                                     ]}>
                                     <TextInput 
@@ -143,7 +104,7 @@ export default function LoginScreen() {
 
                                 <Animated.View entering={FadeInDown.delay(200).duration(1000).springify()} 
                                     style={[
-                                        tw`bg-white/80 rounded-2xl w-full mb-6 overflow-hidden`,
+                                        tw`bg-white/90 rounded-2xl w-full mb-6 overflow-hidden`,
                                         { height: 60 }
                                     ]}>
                                     <TextInput 
@@ -183,12 +144,6 @@ export default function LoginScreen() {
                                 <Animated.View entering={FadeInDown.delay(800).duration(1000).springify()} style={tw`flex-row justify-center items-center space-x-2`}>
                                     <TouchableOpacity onPress={() => router.push('/forgot-password')}>
                                         <Text style={tw`text-sky-600 font-semibold text-base`}>Forgot password?</Text>
-                                    </TouchableOpacity>
-                                </Animated.View>
-
-                                <Animated.View entering={FadeInDown.delay(1000).duration(1000).springify()} style={tw`flex-row justify-center items-center space-x-2`}>
-                                    <TouchableOpacity onPress={() => router.push('/mobile-number')}>
-                                        <Text style={tw`text-sky-600 font-semibold text-base`}>Login with mobile number</Text>
                                     </TouchableOpacity>
                                 </Animated.View>
                             </View>
