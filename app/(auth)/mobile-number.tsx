@@ -1,40 +1,102 @@
-import { View, Text, Image, TextInput, TouchableOpacity, Dimensions } from 'react-native'
+import { View, Text, Image, TextInput, TouchableOpacity, Dimensions, Alert } from 'react-native'
 import React, { useState } from 'react'
 import tw from 'twrnc';
 import { StatusBar } from 'expo-status-bar'
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
+import axios from 'axios';
+
+const API_URL = 'http://localhost:8000'; // Change this to your backend URL
 
 export default function MobileNumberScreen() {
     const router = useRouter();
     const {width} = Dimensions.get('window');
     const [mobileNumber, setMobileNumber] = useState('');
+    const [email, setEmail] = useState('');
     const [validationError, setValidationError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     
-    const handleContinue = () => {
+    const validateEmail = (email: string) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    };
+
+    const validatePhone = (phone: string) => {
+        const phoneRegex = /^\+?[0-9]{10,15}$/;
+        return phoneRegex.test(phone.replace(/\s+/g, ''));
+    };
+
+    const sendVerificationCode = async (email: string, mobileNumber: string) => {
+        try {
+            const response = await axios.post(`${API_URL}/auth/send-reset-code`, {
+                email,
+                mobileNumber
+            });
+            return response.data;
+        } catch (error: any) {
+            if (error.response) {
+                throw new Error(error.response.data.detail || 'Failed to send verification code');
+            }
+            throw new Error('Network error. Please try again.');
+        }
+    };
+    
+    const handleContinue = async () => {
         // Clear previous errors
         setValidationError('');
         
+        // Validate email
+        if (!email.trim()) {
+            setValidationError('Email is required');
+            return;
+        }
+        
+        if (!validateEmail(email)) {
+            setValidationError('Please enter a valid email address');
+            return;
+        }
+
         // Validate mobile number
         if (!mobileNumber.trim()) {
             setValidationError('Mobile number is required');
             return;
         }
         
-        // Basic validation for mobile number format
-        const phoneRegex = /^\+?[0-9]{10,15}$/;
-        if (!phoneRegex.test(mobileNumber.replace(/\s+/g, ''))) {
+        if (!validatePhone(mobileNumber)) {
             setValidationError('Please enter a valid mobile number');
             return;
         }
         
-        // Simulate API call
+        // Call backend API to send verification code
         setIsLoading(true);
-        setTimeout(() => {
+        try {
+            await sendVerificationCode(email, mobileNumber);
+            
+            // Show success message and navigate to verification code screen
+            Alert.alert(
+                'Verification Code Sent',
+                'Please check your email for the verification code.',
+                [
+                    {
+                        text: 'OK',
+                        onPress: () => {
+                            router.replace({
+                                pathname: '/(auth)/verify-code',
+                                params: { 
+                                    email: email,
+                                    mobileNumber: mobileNumber
+                                }
+                            });
+                        }
+                    }
+                ]
+            );
+        } catch (error: any) {
+            setValidationError(error.message);
+            Alert.alert('Error', error.message);
+        } finally {
             setIsLoading(false);
-            router.push('/new-password');
-        }, 1000);
+        }
     };
     
     return (
@@ -50,7 +112,7 @@ export default function MobileNumberScreen() {
                 {/* Title */}
                 <View style={tw`w-full flex items-center mb-10`}>
                     <Animated.Text entering={FadeInUp.duration(1000).springify()} style={tw`text-black font-bold tracking-wider text-5xl`}>
-                        Enter your mobile number
+                        Enter your details
                     </Animated.Text>
                 </View>
                 {/* form */}
@@ -62,6 +124,25 @@ export default function MobileNumberScreen() {
                     ) : null}
                     
                     <Animated.View entering={FadeInDown.duration(1000).springify()} 
+                        style={[
+                            tw`bg-white/80 rounded-2xl w-full mb-4 overflow-hidden`,
+                            { height: 60 }
+                        ]}>
+                        <TextInput 
+                            placeholder='Email address' 
+                            placeholderTextColor={'gray'} 
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            style={[
+                                tw`text-lg px-5`,
+                                { height: '100%' }
+                            ]}
+                        />
+                    </Animated.View>
+
+                    <Animated.View entering={FadeInDown.delay(200).duration(1000).springify()} 
                         style={[
                             tw`bg-white/80 rounded-2xl w-full mb-4 overflow-hidden`,
                             { height: 60 }
@@ -82,14 +163,14 @@ export default function MobileNumberScreen() {
                     <Animated.View entering={FadeInDown.delay(400).duration(1000).springify()} style={tw`w-full mb-6`}>
                         <TouchableOpacity 
                             onPress={handleContinue}
-                            disabled={isLoading || !mobileNumber.trim()}
+                            disabled={isLoading || !mobileNumber.trim() || !email.trim()}
                             style={[
                                 tw`w-full bg-sky-400 rounded-xl items-center justify-center`,
                                 { height: 55 },
-                                (isLoading || !mobileNumber.trim()) && tw`opacity-50`
+                                (isLoading || !mobileNumber.trim() || !email.trim()) && tw`opacity-50`
                             ]}>
                             <Text style={tw`text-xl font-bold text-white text-center`}>
-                                {isLoading ? 'Sending code...' : 'Continue'}
+                                {isLoading ? 'Sending Code...' : 'Send Verification Code'}
                             </Text>
                         </TouchableOpacity>
                     </Animated.View>

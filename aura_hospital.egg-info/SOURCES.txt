@@ -1,0 +1,12 @@
+README.md
+setup.py
+aura_hospital.egg-info/PKG-INFO
+aura_hospital.egg-info/SOURCES.txt
+aura_hospital.egg-info/dependency_links.txt
+aura_hospital.egg-info/requires.txt
+aura_hospital.egg-info/top_level.txt
+backend/__init__.py
+backend/auth.py
+backend/main.py
+backend/models.py
+backend/run.py
