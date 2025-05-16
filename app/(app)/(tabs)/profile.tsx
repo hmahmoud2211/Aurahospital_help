@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Settings, User, Heart, Bell, Shield, HelpCircle, LogOut } from 'lucide-react-native';
+import { Settings, User, Heart, Bell, Shield, HelpCircle, LogOut, DollarSign } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import Typography from '@/constants/typography';
 import Header from '@/components/Header';
@@ -11,10 +11,59 @@ import { useAuthStore } from '@/store/auth-store';
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
-  
+
+  // Mock financial data (replace with real data from a store or API)
+  const financialOverview = {
+    totalExpenses: 1500.00,
+    insuranceCoverage: 1200.00,
+    outstandingBalance: 300.00,
+    paymentStatus: 'Partially Paid',
+  };
+
   const handleLogout = () => {
     logout();
     router.replace('/(auth)');
+  };
+
+  const renderFinancialOverview = () => {
+    console.log('Rendering Financial Overview Section');
+    return (
+      <View style={styles.financialOverviewSection}>
+        <Text style={styles.sectionTitle}>Financial Overview</Text>
+        {financialOverview ? (
+          <View style={styles.financialContainer}>
+            <View style={styles.financialItem}>
+              <Text style={styles.financialLabel}>Total Expenses</Text>
+              <Text style={styles.financialValue}>${financialOverview.totalExpenses.toFixed(2)}</Text>
+            </View>
+            <View style={styles.financialItem}>
+              <Text style={styles.financialLabel}>Insurance Coverage</Text>
+              <Text style={styles.financialValue}>${financialOverview.insuranceCoverage.toFixed(2)}</Text>
+            </View>
+            <View style={styles.financialItem}>
+              <Text style={styles.financialLabel}>Outstanding Balance</Text>
+              <Text style={[styles.financialValue, financialOverview.outstandingBalance > 0 ? styles.warning : styles.success]}>
+                ${financialOverview.outstandingBalance.toFixed(2)}
+              </Text>
+            </View>
+            <View style={styles.financialItem}>
+              <Text style={styles.financialLabel}>Payment Status</Text>
+              <Text style={[styles.financialValue, financialOverview.paymentStatus === 'Unpaid' ? styles.danger : styles.success]}>
+                {financialOverview.paymentStatus}
+              </Text>
+            </View>
+            <View style={styles.paymentButtonContainer}>
+              <TouchableOpacity style={styles.paymentButton} onPress={() => router.push('/records')}>
+                <DollarSign size={20} color={Colors.background || '#FFFFFF'} />
+                <Text style={styles.paymentButtonText}>Manage Payments</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <Text style={styles.noDataText}>No financial data available</Text>
+        )}
+      </View>
+    );
   };
 
   return (
@@ -47,7 +96,9 @@ export default function ProfileScreen() {
             )}
           </View>
           <Text style={styles.profileName}>{user?.name}</Text>
-          <Text style={styles.profileRole}>{user?.role.charAt(0).toUpperCase() + user?.role.slice(1)}</Text>
+          <Text style={styles.profileRole}>
+            {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Unknown'}
+          </Text>
           
           <TouchableOpacity 
             style={styles.editProfileButton}
@@ -79,24 +130,27 @@ export default function ProfileScreen() {
         )}
         
         {user?.role === 'doctor' && (
-          <View style={styles.infoSection}>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Specialty</Text>
-              <Text style={styles.infoValue}>Cardiology</Text>
+          <>
+            <View style={styles.infoSection}>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Specialty</Text>
+                <Text style={styles.infoValue}>Cardiology</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Hospital</Text>
+                <Text style={styles.infoValue}>Memorial Hospital</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>License Number</Text>
+                <Text style={styles.infoValue}>MD12345</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>Rating</Text>
+                <Text style={styles.infoValue}>4.9 ★</Text>
+              </View>
             </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Hospital</Text>
-              <Text style={styles.infoValue}>Memorial Hospital</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>License Number</Text>
-              <Text style={styles.infoValue}>MD12345</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Rating</Text>
-              <Text style={styles.infoValue}>4.9 ★</Text>
-            </View>
-          </View>
+            {renderFinancialOverview()}
+          </>
         )}
         
         <View style={styles.menuSection}>
@@ -246,6 +300,77 @@ const styles = StyleSheet.create({
     ...Typography.body,
     fontWeight: '500',
   },
+  financialOverviewSection: {
+    marginBottom: 24,
+    borderWidth: 2,
+    borderColor: 'white',
+    padding: 10,
+    backgroundColor: '#ffffff',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    color: Colors.text || '#000000',
+  },
+  financialContainer: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  financialItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  financialLabel: {
+    ...Typography.body,
+    color: '#000000',
+  },
+  financialValue: {
+    ...Typography.body,
+    fontWeight: '500',
+  },
+  warning: {
+    color: '#FFA500',
+  },
+  success: {
+    color: '#008000',
+  },
+  danger: {
+    color: '#FF0000',
+  },
+  paymentButtonContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#007BFF',
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  paymentButton: {
+    flexDirection: 'row',
+    backgroundColor: '#007BFF',
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 4,
+  },
+  paymentButtonText: {
+    ...Typography.body,
+    color: '#FFFFFF',
+    marginLeft: 8,
+    fontWeight: '500',
+  },
   menuSection: {
     marginBottom: 24,
   },
@@ -303,5 +428,11 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     color: Colors.textLight,
     textAlign: 'center',
+  },
+  noDataText: {
+    ...Typography.body,
+    color: Colors.textSecondary || '#707070',
+    textAlign: 'center',
+    marginVertical: 16,
   },
 });

@@ -1,93 +1,101 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { User } from '@/types/user';
-import { mockUsers } from '@/mocks/users';
+import { persist } from 'zustand/middleware';
+import axios from 'axios';
+
+const API_URL = 'http://localhost:8000';  // Change this to your backend URL
+
+interface User {
+  id: number;
+  email: string;
+  name: string;
+  role: 'patient' | 'practitioner';
+}
 
 interface AuthState {
   user: User | null;
+  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
+  register: (userData: any, password: string) => Promise<void>;
   logout: () => void;
-  register: (userData: Partial<User>, password: string) => Promise<void>;
   clearError: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
+      token: null,
       isAuthenticated: false,
       isLoading: false,
       error: null,
-      
-      login: async (email, password) => {
+
+      login: async (email: string, password: string) => {
         set({ isLoading: true, error: null });
-        
         try {
-          // Simulate API call
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          // Find user in mock data
-          const user = mockUsers.find(u => u.email === email);
-          
-          if (user && password === 'password') { // Simple mock password check
-            set({ user, isAuthenticated: true, isLoading: false });
-          } else {
-            set({ error: 'Invalid email or password', isLoading: false });
-            throw new Error('Invalid email or password');
-          }
-        } catch (error) {
-          set({ error: 'Login failed. Please try again.', isLoading: false });
+          const formData = new FormData();
+          formData.append('username', email);
+          formData.append('password', password);
+
+          const response = await axios.post(`${API_URL}/auth/token`, formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+
+          const { access_token, user } = response.data;
+          set({
+            user,
+            token: access_token,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+
+          // Set default authorization header for future requests
+          axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+        } catch (error: any) {
+          set({
+            error: error.response?.data?.detail || 'Login failed',
+            isLoading: false,
+          });
           throw error;
         }
       },
-      
+
+      register: async (userData: any, password: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await axios.post(`${API_URL}/auth/register`, {
+            ...userData,
+            password,
+          });
+
+          // After successful registration, log the user in
+          await get().login(userData.email, password);
+        } catch (error: any) {
+          set({
+            error: error.response?.data?.detail || 'Registration failed',
+            isLoading: false,
+          });
+          throw error;
+        }
+      },
+
       logout: () => {
-        set({ user: null, isAuthenticated: false });
+        set({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+        });
+        delete axios.defaults.headers.common['Authorization'];
       },
-      
-      register: async (userData, password) => {
-        set({ isLoading: true, error: null });
-        
-        try {
-          // Simulate API call
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          // Check if email already exists
-          const existingUser = mockUsers.find(u => u.email === userData.email);
-          
-          if (existingUser) {
-            set({ error: 'Email already in use', isLoading: false });
-            throw new Error('Email already in use');
-          }
-          
-          // In a real app, we would create a new user here
-          // For now, just simulate success
-          const newUser: User = {
-            id: 'new-user-id',
-            name: userData.name || '',
-            email: userData.email || '',
-            role: userData.role || 'patient',
-            ...userData
-          };
-          
-          set({ user: newUser, isAuthenticated: true, isLoading: false });
-        } catch (error) {
-          set({ error: 'Registration failed. Please try again.', isLoading: false });
-          throw error;
-        }
-      },
-      
-      clearError: () => {
-        set({ error: null });
-      },
+
+      clearError: () => set({ error: null }),
     }),
     {
       name: 'auth-storage',
-      storage: createJSONStorage(() => AsyncStorage),
     }
   )
 );

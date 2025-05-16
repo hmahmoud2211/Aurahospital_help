@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useRouter, Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bell, Calendar, MessageSquare, FileText, Pill, UserIcon, AlertTriangle, Phone, DollarSign } from 'lucide-react-native';
+import { Bell, Calendar, MessageSquare, FileText, Pill, UserIcon, AlertTriangle, Phone } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import Typography from '@/constants/typography';
 import { useAuthStore } from '@/store/auth-store';
@@ -92,14 +92,6 @@ export default function HomeScreen() {
     glucose: vitalSigns?.current?.glucose ?? defaultVitalSigns.glucose,
   };
 
-  // Mock financial data (replace with real data from a store or API)
-  const financialOverview = {
-    totalExpenses: 1500.00,
-    insuranceCoverage: 1200.00,
-    outstandingBalance: 300.00,
-    paymentStatus: 'Partially Paid',
-  };
-
   useEffect(() => {
     const checkEmergencyConditions = () => {
       if (currentVitals.heartRate > 100 || currentVitals.heartRate < 60) {
@@ -135,47 +127,6 @@ export default function HomeScreen() {
         <TouchableOpacity style={styles.emergencyCallButton} onPress={handleEmergencyCall}>
           <Phone size={20} color={ExtendedColors.background} />
         </TouchableOpacity>
-      </View>
-    );
-  };
-
-  const renderFinancialOverview = () => {
-    console.log('Rendering Financial Overview Section');
-    return (
-      <View style={styles.financialOverviewSection}>
-        <Text style={styles.sectionTitle}>Financial Overview</Text>
-        {financialOverview ? (
-          <View style={styles.financialContainer}>
-            <View style={styles.financialItem}>
-              <Text style={styles.financialLabel}>Total Expenses</Text>
-              <Text style={styles.financialValue}>${financialOverview.totalExpenses.toFixed(2)}</Text>
-            </View>
-            <View style={styles.financialItem}>
-              <Text style={styles.financialLabel}>Insurance Coverage</Text>
-              <Text style={styles.financialValue}>${financialOverview.insuranceCoverage.toFixed(2)}</Text>
-            </View>
-            <View style={styles.financialItem}>
-              <Text style={styles.financialLabel}>Outstanding Balance</Text>
-              <Text style={[styles.financialValue, financialOverview.outstandingBalance > 0 ? styles.warning : styles.success]}>
-                ${financialOverview.outstandingBalance.toFixed(2)}
-              </Text>
-            </View>
-            <View style={styles.financialItem}>
-              <Text style={styles.financialLabel}>Payment Status</Text>
-              <Text style={[styles.financialValue, financialOverview.paymentStatus === 'Unpaid' ? styles.danger : styles.success]}>
-                {financialOverview.paymentStatus}
-              </Text>
-            </View>
-            <View style={styles.paymentButtonContainer}>
-              <TouchableOpacity style={styles.paymentButton} onPress={() => router.push('/records')}>
-                <DollarSign size={20} color={ExtendedColors.background || '#FFFFFF'} />
-                <Text style={styles.paymentButtonText}>Manage Payments</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : (
-          <Text style={styles.noDataText}>No financial data available</Text>
-        )}
       </View>
     );
   };
@@ -228,8 +179,6 @@ export default function HomeScreen() {
             </View>
           </View>
         </View>
-
-        {renderFinancialOverview()}
 
         <View style={styles.quickActionsSection}>
           <Link href="/(app)/(tabs)/appointments" asChild>
@@ -353,8 +302,6 @@ export default function HomeScreen() {
             </View>
           </View>
         </View>
-
-        {renderFinancialOverview()}
 
         <View style={styles.quickActionsSection}>
           <Link href="/(app)/(tabs)/appointments" asChild>
@@ -575,71 +522,6 @@ const styles = StyleSheet.create({
   critical: {
     color: ExtendedColors.error || '#d32f2f',
   },
-  financialOverviewSection: {
-    marginBottom: 24,
-    borderWidth: 2,
-    borderColor: 'white', // Changed from red to white
-    padding: 10,
-    backgroundColor: '#ffffff',
-  },
-  financialContainer: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  financialItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  financialLabel: {
-    ...Typography.body,
-    color: '#000000',
-  },
-  financialValue: {
-    ...Typography.body,
-    fontWeight: '500',
-  },
-  warning: {
-    color: '#FFA500',
-  },
-  success: {
-    color: '#008000',
-  },
-  danger: {
-    color: '#FF0000',
-  },
-  paymentButtonContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#007BFF',
-    padding: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 12,
-  },
-  paymentButton: {
-    flexDirection: 'row',
-    backgroundColor: '#007BFF',
-    padding: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 4,
-  },
-  paymentButtonText: {
-    ...Typography.body,
-    color: '#FFFFFF',
-    marginLeft: 8,
-    fontWeight: '500',
-  },
   quickActionsSection: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -816,11 +698,5 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     color: ExtendedColors.primary || '#007BFF',
     fontWeight: '500',
-  },
-  noDataText: {
-    ...Typography.body,
-    color: ExtendedColors.textSecondary || '#707070',
-    textAlign: 'center',
-    marginVertical: 16,
   },
 });

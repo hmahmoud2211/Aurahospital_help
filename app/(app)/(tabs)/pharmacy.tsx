@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Modal, TextInput, Button, ActivityIndicator, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bell, Clock, Pill, Plus, Search, X, User, Users } from 'lucide-react-native';
+import { Bell, Clock, Pill, Plus, Search, X, User, Users, Truck } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import Typography from '@/constants/typography';
 import Header from '@/components/Header';
@@ -98,7 +98,7 @@ const PATIENT_PRESCRIPTIONS: DisplayMedication[] = [
 export default function PharmacyScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { medications, fetchMedications, requestMedicationRefill, addPrescription, isLoading } = useMedicalRecordsStore();
+  const { medications, fetchMedications, addPrescription, isLoading } = useMedicalRecordsStore();
   
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isSOAPModalVisible, setIsSOAPModalVisible] = useState(false);
@@ -135,10 +135,6 @@ export default function PharmacyScreen() {
     }
   }, [searchQuery]);
   
-  const handleRefill = async (medicationId: string) => {
-    await requestMedicationRefill(medicationId);
-  };
-
   const handleAddPrescription = () => {
     console.log('New Prescription:', newPrescription);
     setNewPrescription({ name: '', dosage: '', frequency: '', notes: '' });
@@ -287,7 +283,6 @@ export default function PharmacyScreen() {
             <MedicationCard 
               key={medication.id} 
               medication={medication}
-              onRefill={handleRefill}
             />
           ))
         ) : (
@@ -301,6 +296,23 @@ export default function PharmacyScreen() {
             </Text>
           </View>
         )}
+        
+        <View style={styles.pharmacyOptionsContainer}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Pharmacy Options</Text>
+          </View>
+          <TouchableOpacity style={styles.pharmacyOption}>
+            <View style={styles.pharmacyOptionIcon}>
+              <Truck size={20} color={Colors.primary} />
+            </View>
+            <View style={styles.pharmacyOptionContent}>
+              <Text style={styles.pharmacyOptionTitle}>Delivery Options</Text>
+              <Text style={styles.pharmacyOptionText}>
+                Set up home delivery for your medications
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
         
         {/* Patient Modal for Adding Prescriptions */}
         <Modal
@@ -588,32 +600,6 @@ export default function PharmacyScreen() {
           />
         )}
         
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Pharmacy Options</Text>
-        </View>
-        
-        <View style={styles.pharmacyOptionsContainer}>
-          <TouchableOpacity style={styles.pharmacyOption}>
-            <View style={styles.pharmacyOptionIcon}>
-              <Pill size={24} color={Colors.primary} />
-            </View>
-            <View style={styles.pharmacyOptionContent}>
-              <Text style={styles.pharmacyOptionTitle}>Memorial Pharmacy</Text>
-              <Text style={styles.pharmacyOptionText}>Your default pharmacy</Text>
-            </View>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.pharmacyOption}>
-            <View style={styles.pharmacyOptionIcon}>
-              <Clock size={24} color={Colors.primary} />
-            </View>
-            <View style={styles.pharmacyOptionContent}>
-              <Text style={styles.pharmacyOptionTitle}>Delivery Options</Text>
-              <Text style={styles.pharmacyOptionText}>Set up medication delivery</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-        
         <View style={styles.medicationHistorySection}>
           <Text style={styles.sectionTitle}>Medication History</Text>
           <View style={styles.medicationHistoryItem}>
@@ -709,7 +695,7 @@ const styles = StyleSheet.create({
   },
   headerButtons: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'center'
   },
   viewAllText: {
     ...Typography.body,
@@ -762,6 +748,43 @@ const styles = StyleSheet.create({
     ...Typography.body,
     color: Colors.textSecondary,
     textAlign: 'center',
+  },
+  pharmacyOptionsContainer: {
+    marginBottom: 24,
+  },
+  pharmacyOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.card,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  pharmacyOptionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: `${Colors.primary}15`,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  pharmacyOptionContent: {
+    flex: 1,
+  },
+  pharmacyOptionTitle: {
+    ...Typography.body,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  pharmacyOptionText: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
   },
   modalContainer: {
     flex: 1,
@@ -946,43 +969,6 @@ const styles = StyleSheet.create({
     ...Typography.body,
     color: Colors.textSecondary,
     marginTop: 16,
-  },
-  pharmacyOptionsContainer: {
-    marginBottom: 24,
-  },
-  pharmacyOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.card,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  pharmacyOptionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: `${Colors.primary}15`,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  pharmacyOptionContent: {
-    flex: 1,
-  },
-  pharmacyOptionTitle: {
-    ...Typography.body,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  pharmacyOptionText: {
-    ...Typography.caption,
-    color: Colors.textSecondary,
   },
   medicationHistorySection: {
     marginBottom: 24,

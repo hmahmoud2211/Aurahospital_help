@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: aura-hospital
+Version: 1.0.0
+Requires-Dist: fastapi
+Requires-Dist: uvicorn
+Requires-Dist: tortoise-orm
+Requires-Dist: aerich
+Requires-Dist: aiosqlite
+Requires-Dist: python-jose[cryptography]
+Requires-Dist: passlib[bcrypt]
+Requires-Dist: python-multipart
+Dynamic: requires-dist
