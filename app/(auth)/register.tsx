@@ -11,12 +11,14 @@ import tw from 'twrnc';
 import { StatusBar } from 'expo-status-bar';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { User as UserType, UserRole } from '@/types/user';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function SignupScreen() {
   const router = useRouter();
   const { register, isLoading, error, clearError, isAuthenticated } = useAuthStore();
   const { width } = Dimensions.get('window');
   const [role, setRole] = useState<UserRole>('patient');
+  const [professionalRole, setProfessionalRole] = useState<'doctor' | 'nurse' | 'pharmacist' | 'laboratory'>('doctor');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [nationalId, setNationalId] = useState('');
@@ -29,6 +31,7 @@ export default function SignupScreen() {
   const [gender, setGender] = useState<'male' | 'female' | 'other'>('male');
   const [specialty, setSpecialty] = useState('');
   const [hospital, setHospital] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Redirect to dashboard if already authenticated
   useEffect(() => {
@@ -48,9 +51,32 @@ export default function SignupScreen() {
       return;
     }
     
-    if (role === 'doctor' && (!licenseNumber || !specialty || !hospital)) {
-      setValidationError('All doctor fields are required');
-      return;
+    if (role === 'doctor') {
+      if (!licenseNumber || !specialty || !hospital) {
+        setValidationError('All professional fields are required');
+        return;
+      }
+
+      // Validate license number format based on professional role
+      let isValid = false;
+      let validPrefix = '';
+      if (professionalRole === 'doctor') {
+        validPrefix = 'dr';
+        isValid = licenseNumber.substring(0, 2).toLowerCase() === validPrefix;
+      } else if (professionalRole === 'nurse') {
+        validPrefix = 'n';
+        isValid = licenseNumber.substring(0, 1).toLowerCase() === validPrefix;
+      } else if (professionalRole === 'pharmacist') {
+        validPrefix = 'f';
+        isValid = licenseNumber.substring(0, 1).toLowerCase() === validPrefix;
+      } else if (professionalRole === 'laboratory') {
+        validPrefix = 'l';
+        isValid = licenseNumber.substring(0, 1).toLowerCase() === validPrefix;
+      }
+      if (!isValid) {
+        setValidationError(`License number must start with '${validPrefix.toUpperCase()}' for ${professionalRole.charAt(0).toUpperCase() + professionalRole.slice(1)}`);
+        return;
+      }
     }
     
     if (password !== confirmPassword) {
@@ -73,6 +99,7 @@ export default function SignupScreen() {
         specialty,
         hospital,
         phone,
+        professionalRole,
       })
     };
     
@@ -81,6 +108,16 @@ export default function SignupScreen() {
       // Navigation will be handled by the useEffect above when isAuthenticated changes
     } catch (error) {
       console.error('Registration failed:', error);
+    }
+  };
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const day = String(selectedDate.getDate()).padStart(2, '0');
+      setDateOfBirth(`${year}-${month}-${day}`);
     }
   };
 
@@ -239,16 +276,29 @@ export default function SignupScreen() {
                     tw`bg-white/90 rounded-2xl w-full mb-4 overflow-hidden`,
                     { height: 60 }
                   ]}>
-                  <TextInput 
-                    placeholder='Date of Birth (YYYY-MM-DD)' 
-                    placeholderTextColor={'gray'} 
-                    value={dateOfBirth}
-                    onChangeText={setDateOfBirth}
-                    style={[
-                      tw`text-lg px-5`,
-                      { height: '100%' }
-                    ]}
-                  />
+                  {Platform.OS === 'web' ? (
+                    <input
+                      type="date"
+                      value={dateOfBirth}
+                      onChange={e => setDateOfBirth(e.target.value)}
+                      style={{ width: '100%', height: '100%', fontSize: 18, paddingLeft: 20, border: 'none', background: 'transparent' }}
+                    />
+                  ) : (
+                    <TouchableOpacity onPress={() => setShowDatePicker(true)} style={[tw`flex-1 justify-center`, { height: '100%' }]}> 
+                      <Text style={[tw`text-lg px-5`, { color: dateOfBirth ? 'black' : 'gray' }]}> 
+                        {dateOfBirth || 'Date of Birth (YYYY-MM-DD)'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  {showDatePicker && Platform.OS !== 'web' && (
+                    <DateTimePicker
+                      value={dateOfBirth ? new Date(dateOfBirth) : new Date()}
+                      mode="date"
+                      display="default"
+                      onChange={handleDateChange}
+                      maximumDate={new Date()}
+                    />
+                  )}
                 </Animated.View>
 
                 {role === 'doctor' && (
@@ -258,8 +308,81 @@ export default function SignupScreen() {
                         tw`bg-white/90 rounded-2xl w-full mb-4 overflow-hidden`,
                         { height: 60 }
                       ]}>
+                      <View style={tw`flex-row rounded-xl overflow-hidden bg-gray-100 mb-4`}>
+                        <TouchableOpacity 
+                          onPress={() => setProfessionalRole('doctor')} 
+                          style={[
+                            tw`py-3 px-4`,
+                            professionalRole === 'doctor' ? tw`bg-gray-100` : tw`bg-blue-500`
+                          ]}
+                        >
+                          <Text 
+                            style={[
+                              tw`text-base font-medium`,
+                              professionalRole === 'doctor' ? tw`text-gray-800` : tw`text-white`
+                            ]}
+                          >
+                            Doctor
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          onPress={() => setProfessionalRole('nurse')} 
+                          style={[
+                            tw`py-3 px-4`,
+                            professionalRole === 'nurse' ? tw`bg-gray-100` : tw`bg-blue-500`
+                          ]}
+                        >
+                          <Text 
+                            style={[
+                              tw`text-base font-medium`,
+                              professionalRole === 'nurse' ? tw`text-gray-800` : tw`text-white`
+                            ]}
+                          >
+                            Nurse
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          onPress={() => setProfessionalRole('pharmacist')} 
+                          style={[
+                            tw`py-3 px-4`,
+                            professionalRole === 'pharmacist' ? tw`bg-gray-100` : tw`bg-blue-500`
+                          ]}
+                        >
+                          <Text 
+                            style={[
+                              tw`text-base font-medium`,
+                              professionalRole === 'pharmacist' ? tw`text-gray-800` : tw`text-white`
+                            ]}
+                          >
+                            Pharmacist
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          onPress={() => setProfessionalRole('laboratory')} 
+                          style={[
+                            tw`py-3 px-4`,
+                            professionalRole === 'laboratory' ? tw`bg-gray-100` : tw`bg-blue-500`
+                          ]}
+                        >
+                          <Text 
+                            style={[
+                              tw`text-base font-medium`,
+                              professionalRole === 'laboratory' ? tw`text-gray-800` : tw`text-white`
+                            ]}
+                          >
+                            Lab
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </Animated.View>
+
+                    <Animated.View entering={FadeInDown.delay(700).duration(1000).springify()}
+                      style={[
+                        tw`bg-white/90 rounded-2xl w-full mb-4 overflow-hidden`,
+                        { height: 60 }
+                      ]}>
                       <TextInput
-                        placeholder="License Number"
+                        placeholder={`License Number (starts with ${professionalRole === 'doctor' ? 'DR' : professionalRole === 'nurse' ? 'N' : professionalRole === 'pharmacist' ? 'F' : 'L'})`}
                         placeholderTextColor={'gray'}
                         value={licenseNumber}
                         onChangeText={setLicenseNumber}
@@ -270,7 +393,7 @@ export default function SignupScreen() {
                       />
                     </Animated.View>
 
-                    <Animated.View entering={FadeInDown.delay(700).duration(1000).springify()}
+                    <Animated.View entering={FadeInDown.delay(800).duration(1000).springify()}
                       style={[
                         tw`bg-white/90 rounded-2xl w-full mb-4 overflow-hidden`,
                         { height: 60 }
@@ -287,7 +410,7 @@ export default function SignupScreen() {
                       />
                     </Animated.View>
 
-                    <Animated.View entering={FadeInDown.delay(800).duration(1000).springify()}
+                    <Animated.View entering={FadeInDown.delay(900).duration(1000).springify()}
                       style={[
                         tw`bg-white/90 rounded-2xl w-full mb-4 overflow-hidden`,
                         { height: 60 }
@@ -306,7 +429,7 @@ export default function SignupScreen() {
                   </>
                 )}
 
-                <Animated.View entering={FadeInDown.delay(900).duration(1000).springify()} 
+                <Animated.View entering={FadeInDown.delay(1000).duration(1000).springify()} 
                   style={[
                     tw`bg-white/90 rounded-2xl w-full mb-4 overflow-hidden`,
                     { height: 60 }
@@ -324,7 +447,7 @@ export default function SignupScreen() {
                   />
                 </Animated.View>
 
-                <Animated.View entering={FadeInDown.delay(1000).duration(1000).springify()} 
+                <Animated.View entering={FadeInDown.delay(1100).duration(1000).springify()} 
                   style={[
                     tw`bg-white/90 rounded-2xl w-full mb-6 overflow-hidden`,
                     { height: 60 }
@@ -342,7 +465,7 @@ export default function SignupScreen() {
                   />
                 </Animated.View>
 
-                <Animated.View entering={FadeInDown.delay(1100).duration(1000).springify()} style={tw`w-full mb-2`}>
+                <Animated.View entering={FadeInDown.delay(1200).duration(1000).springify()} style={tw`w-full mb-2`}>
                   <TouchableOpacity 
                     onPress={handleRegister}
                     disabled={isLoading}
@@ -356,7 +479,7 @@ export default function SignupScreen() {
                   </TouchableOpacity>
                 </Animated.View>
 
-                <Animated.View entering={FadeInDown.delay(1200).duration(1000).springify()} style={tw`flex-row justify-center items-center space-x-2 mt-2 mb-6`}>
+                <Animated.View entering={FadeInDown.delay(1300).duration(1000).springify()} style={tw`flex-row justify-center items-center space-x-2 mt-2 mb-6`}>
                   <Text style={tw`text-base font-medium`}>Already have an account?</Text>
                   <TouchableOpacity onPress={() => router.push('/')}>
                     <Text style={tw`text-sky-600 font-semibold text-lg`}>Login</Text>

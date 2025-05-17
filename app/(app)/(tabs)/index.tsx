@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
 import { useRouter, Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bell, Calendar, MessageSquare, FileText, Pill, UserIcon, AlertTriangle, Phone } from 'lucide-react-native';
@@ -10,6 +10,8 @@ import { usePatientStore } from '@/store/patient-store';
 import { useAppointmentStore } from '@/store/appointment-store';
 import HealthMetricCard from '@/components/HealthMetricCard';
 import AppointmentCard from '@/components/AppointmentCard';
+import * as Notifications from 'expo-notifications';
+import { NotificationTriggerInput } from 'expo-notifications';
 
 // Define the Colors type
 interface AppColors {
@@ -66,10 +68,10 @@ export default function HomeScreen() {
   useEffect(() => {
     if (effectiveUser) {
       if (effectiveUser.role === 'patient') {
-        setCurrentPatient(effectiveUser.id);
-        fetchAppointments(effectiveUser.id, effectiveUser.role);
+        setCurrentPatient(String(effectiveUser.id));
+        fetchAppointments(String(effectiveUser.id), effectiveUser.role);
       } else if (effectiveUser.role === 'doctor') {
-        fetchAppointments(effectiveUser.id, effectiveUser.role);
+        fetchAppointments(String(effectiveUser.id), effectiveUser.role);
       }
     }
   }, [effectiveUser]);
@@ -349,63 +351,85 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
           
-          <View style={styles.patientCard}>
-            <View style={styles.patientCardHeader}>
-              <View style={styles.patientIconContainer}>
-                <UserIcon size={20} color={ExtendedColors.primary || '#007BFF'} />
+          {upcomingAppointments.length > 0 ? (
+            upcomingAppointments.slice(0, 5).map((appointment) => (
+              <View key={String(appointment.id)} style={styles.patientCard}>
+                <View style={styles.patientCardHeader}>
+                  <View style={styles.patientIconContainer}>
+                    <UserIcon size={20} color={ExtendedColors.primary || '#007BFF'} />
+                  </View>
+                  <View style={styles.patientInfo}>
+                    <Text style={styles.patientName}>
+                      {Array.isArray(appointment.patientDetails?.name)
+                        ? appointment.patientDetails.name[0]?.text || 'Unknown Patient'
+                        : (typeof appointment.patientDetails?.name === 'object'
+                            ? appointment.patientDetails.name?.text || 'Unknown Patient'
+                            : appointment.patientDetails?.name || 'Unknown Patient')}
+                    </Text>
+                    <Text style={styles.patientReason}>
+                      Reason: {appointment.reason}
+                    </Text>
+                  </View>
+                  <Text style={styles.appointmentTime}>{appointment.time}</Text>
+                </View>
+                <View style={styles.patientCardActions}>
+                  <TouchableOpacity 
+                    style={styles.patientCardButton}
+                    onPress={() => {
+                      const patientId = appointment.patientDetails?.id || appointment.patient_id;
+                      console.log('Navigating to patient-monitoring for patientId:', patientId);
+                      router.push(`/patient-monitoring?patientId=${patientId}`);
+                    }}
+                  >
+                    <Text style={styles.patientCardButtonText}>View Records</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.patientCardButton}
+                    onPress={() => router.push('/(app)/(tabs)/chat')}
+                  >
+                    <Text style={styles.patientCardButtonText}>Send Message</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-              <View style={styles.patientInfo}>
-                <Text style={styles.patientName}>Sarah Johnson</Text>
-                <Text style={styles.patientReason}>Reason: Follow-up on cardiogram results</Text>
-              </View>
-              <Text style={styles.appointmentTime}>2:30 PM</Text>
-            </View>
-            <View style={styles.patientCardActions}>
-              <TouchableOpacity 
-                style={styles.patientCardButton}
-                onPress={() => router.push('/records')}
-              >
-                <Text style={styles.patientCardButtonText}>View Records</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.patientCardButton}
-                onPress={() => router.push('/(app)/(tabs)/chat')}
-              >
-                <Text style={styles.patientCardButtonText}>Send Message</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-          
-          <View style={styles.patientCard}>
-            <View style={styles.patientCardHeader}>
-              <View style={styles.patientIconContainer}>
-                <UserIcon size={20} color={ExtendedColors.primary || '#007BFF'} />
-              </View>
-              <View style={styles.patientInfo}>
-                <Text style={styles.patientName}>Robert Garcia</Text>
-                <Text style={styles.patientReason}>Reason: Blood pressure monitoring</Text>
-              </View>
-              <Text style={styles.appointmentTime}>4:00 PM</Text>
-            </View>
-            <View style={styles.patientCardActions}>
-              <TouchableOpacity 
-                style={styles.patientCardButton}
-                onPress={() => router.push('/records')}
-              >
-                <Text style={styles.patientCardButtonText}>View Records</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.patientCardButton}
-                onPress={() => router.push('/(app)/(tabs)/chat')}
-              >
-                <Text style={styles.patientCardButtonText}>Send Message</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+            ))
+          ) : (
+            <Text style={styles.noAppointmentsText}>No patient updates</Text>
+          )}
         </View>
       </>
     );
   };
+
+  // Schedule reminders for upcoming appointments
+  useEffect(() => {
+    async function scheduleReminders() {
+      // Only schedule notifications on native platforms
+      if (Platform.OS === 'web') {
+        console.log('Notifications are not supported on web platform');
+        return;
+      }
+
+      for (const appointment of upcomingAppointments) {
+        const appointmentDate = new Date(`${appointment.date}T${appointment.time}`);
+        const reminderTime = new Date(appointmentDate.getTime() - 30 * 60 * 1000); // 30 min before
+        if (reminderTime > new Date()) {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: 'Appointment Reminder',
+              body: `You have an appointment at ${appointmentDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+              data: { appointmentId: appointment.id },
+            },
+            trigger: {
+              seconds: Math.floor((reminderTime.getTime() - Date.now()) / 1000),
+            } as NotificationTriggerInput,
+          });
+        }
+      }
+    }
+    if (upcomingAppointments && upcomingAppointments.length > 0) {
+      scheduleReminders();
+    }
+  }, [upcomingAppointments]);
 
   return (
     <SafeAreaView style={styles.container}>
