@@ -125,20 +125,8 @@ export default function AppointmentDetailsScreen() {
                 <User size={24} color={Colors.primary} />
               </View>
               <View style={styles.doctorInfo}>
-                <Text style={styles.doctorName}>
-                  {selectedAppointment.doctorDetails?.name ? 
-                    (Array.isArray(selectedAppointment.doctorDetails.name) ? 
-                      selectedAppointment.doctorDetails.name[0]?.text : 
-                      selectedAppointment.doctorDetails.name) : 
-                    'Dr. Unknown'}
-                </Text>
-                <Text style={styles.doctorSpecialty}>
-                  {selectedAppointment.doctorDetails?.specialty ? 
-                    (Array.isArray(selectedAppointment.doctorDetails.specialty) ? 
-                      selectedAppointment.doctorDetails.specialty[0] : 
-                      selectedAppointment.doctorDetails.specialty) : 
-                    'Specialty not specified'}
-                </Text>
+                <Text style={styles.doctorName}>{selectedAppointment.doctor?.name}</Text>
+                <Text style={styles.doctorSpecialty}>{selectedAppointment.doctor?.specialty}</Text>
               </View>
             </View>
           </View>

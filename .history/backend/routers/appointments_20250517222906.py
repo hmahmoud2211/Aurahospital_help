@@ -1,12 +1,12 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from datetime import date
-from ..models import Appointment, Appointment_Pydantic, AppointmentIn_Pydantic, Patient, Practitioner, Practitioner_Pydantic, Patient_Pydantic
+from ..models import Appointment, Appointment_Pydantic, AppointmentIn_Pydantic, Patient, Practitioner
 from ..auth import get_current_user
 
 router = APIRouter()
 
-@router.post("/appointments/", response_model=dict)
+@router.post("/appointments/", response_model=Appointment_Pydantic)
 async def create_appointment(appointment: AppointmentIn_Pydantic, current_user: dict = Depends(get_current_user)):
     print("Received appointment payload:", appointment)
     # Verify the patient exists
@@ -41,15 +41,9 @@ async def create_appointment(appointment: AppointmentIn_Pydantic, current_user: 
         notes=appointment.notes,
         follow_up=appointment.follow_up
     )
-    result = await Appointment_Pydantic.from_tortoise_orm(appointment_obj)
-    doctor_details = await Practitioner_Pydantic.from_tortoise_orm(doctor)
-    patient_details = await Patient_Pydantic.from_tortoise_orm(patient)
-    result_dict = result.dict()
-    result_dict["doctorDetails"] = doctor_details.dict()
-    result_dict["patientDetails"] = patient_details.dict()
-    return result_dict
+    return await Appointment_Pydantic.from_tortoise_orm(appointment_obj)
 
-@router.get("/appointments/", response_model=List[dict])
+@router.get("/appointments/", response_model=List[Appointment_Pydantic])
 async def get_appointments(
     current_user: dict = Depends(get_current_user),
     patient_id: int = None,
@@ -65,32 +59,19 @@ async def get_appointments(
     if date:
         query = query.filter(date=date)
     
+    # Include related fields
     appointments = await query.prefetch_related('patient', 'doctor')
-    results = []
-    for appointment in appointments:
-        result = await Appointment_Pydantic.from_tortoise_orm(appointment)
-        doctor_details = await Practitioner_Pydantic.from_tortoise_orm(await appointment.doctor)
-        patient_details = await Patient_Pydantic.from_tortoise_orm(await appointment.patient)
-        result_dict = result.dict()
-        result_dict["doctorDetails"] = doctor_details.dict()
-        result_dict["patientDetails"] = patient_details.dict()
-        results.append(result_dict)
-    return results
+    return [await Appointment_Pydantic.from_tortoise_orm(appointment) for appointment in appointments]
 
-@router.get("/appointments/{appointment_id}", response_model=dict)
+@router.get("/appointments/{appointment_id}", response_model=Appointment_Pydantic)
 async def get_appointment(appointment_id: int, current_user: dict = Depends(get_current_user)):
+    # Include related fields
     appointment = await Appointment.get_or_none(id=appointment_id).prefetch_related('patient', 'doctor')
     if not appointment:
         raise HTTPException(status_code=404, detail="Appointment not found")
-    result = await Appointment_Pydantic.from_tortoise_orm(appointment)
-    doctor_details = await Practitioner_Pydantic.from_tortoise_orm(await appointment.doctor)
-    patient_details = await Patient_Pydantic.from_tortoise_orm(await appointment.patient)
-    result_dict = result.dict()
-    result_dict["doctorDetails"] = doctor_details.dict()
-    result_dict["patientDetails"] = patient_details.dict()
-    return result_dict
+    return await Appointment_Pydantic.from_tortoise_orm(appointment)
 
-@router.put("/appointments/{appointment_id}", response_model=dict)
+@router.put("/appointments/{appointment_id}", response_model=Appointment_Pydantic)
 async def update_appointment(
     appointment_id: int,
     appointment_update: AppointmentIn_Pydantic,
@@ -111,9 +92,19 @@ async def update_appointment(
         if existing_appointment:
             raise HTTPException(status_code=400, detail="This time slot is already booked")
     
+    # Get the patient and doctor objects
+    patient = await Patient.get_or_none(id=appointment_update.patient_id)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    
+    doctor = await Practitioner.get_or_none(id=appointment_update.doctor_id)
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor not found")
+    
+    # Update the appointment
     await appointment.update_from_dict({
-        "patient_id": appointment_update.patient_id,
-        "doctor_id": appointment_update.doctor_id,
+        "patient": patient,
+        "doctor": doctor,
         "date": appointment_update.date,
         "time": appointment_update.time,
         "duration": appointment_update.duration,
@@ -122,13 +113,11 @@ async def update_appointment(
         "notes": appointment_update.notes,
         "follow_up": appointment_update.follow_up
     }).save()
-    result = await Appointment_Pydantic.from_tortoise_orm(appointment)
-    doctor_details = await Practitioner_Pydantic.from_tortoise_orm(await appointment.doctor)
-    patient_details = await Patient_Pydantic.from_tortoise_orm(await appointment.patient)
-    result_dict = result.dict()
-    result_dict["doctorDetails"] = doctor_details.dict()
-    result_dict["patientDetails"] = patient_details.dict()
-    return result_dict
+    
+    # Return the updated appointment with related fields
+    return await Appointment_Pydantic.from_tortoise_orm(
+        await Appointment.get(id=appointment_id).prefetch_related('patient', 'doctor')
+    )
 
 @router.delete("/appointments/{appointment_id}")
 async def delete_appointment(appointment_id: int, current_user: dict = Depends(get_current_user)):

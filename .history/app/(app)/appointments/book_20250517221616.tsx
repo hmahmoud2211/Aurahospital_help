@@ -24,7 +24,6 @@ export default function BookAppointmentScreen() {
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [selectedReason, setSelectedReason] = useState('');
-  const [selectedNotes, setSelectedNotes] = useState('');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showDoctorList, setShowDoctorList] = useState(false);
   const [showSpecialtyList, setShowSpecialtyList] = useState(false);
@@ -63,7 +62,7 @@ export default function BookAppointmentScreen() {
   
   const handleBookAppointment = async () => {
     console.log('Book button clicked');
-    console.log('Current state:', { selectedDate, selectedTime, selectedDoctor, selectedReason, selectedNotes });
+    console.log('Current state:', { selectedDate, selectedTime, selectedDoctor, selectedReason });
     
     if (!selectedDate || !selectedTime || !selectedDoctor || !selectedReason) {
       Alert.alert('Error', 'Please fill in all required fields');
@@ -79,7 +78,7 @@ export default function BookAppointmentScreen() {
         reason: selectedReason,
         duration: 30,
         status: 'scheduled' as AppointmentStatus,
-        notes: selectedNotes,
+        notes: '',
         follow_up: false
       };
 
@@ -359,22 +358,6 @@ export default function BookAppointmentScreen() {
               numberOfLines={4}
               value={selectedReason}
               onChangeText={setSelectedReason}
-            />
-          </View>
-        </View>
-        
-        <View style={styles.formSection}>
-          <Text style={styles.sectionLabel}>Additional Notes (Optional)</Text>
-          <View style={styles.reasonContainer}>
-            <FileText size={20} color={Colors.textSecondary} style={styles.reasonIcon} />
-            <TextInput
-              style={styles.reasonInput}
-              placeholder="Add any additional information or questions for the doctor"
-              placeholderTextColor={Colors.textLight}
-              multiline
-              numberOfLines={4}
-              value={selectedNotes}
-              onChangeText={setSelectedNotes}
             />
           </View>
         </View>
