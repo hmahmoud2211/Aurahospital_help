@@ -84,9 +84,9 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.profileHeader}>
           <View style={styles.profileImageContainer}>
-            {user?.profileImage ? (
+            {user && (user as any).profileImage ? (
               <Image 
-                source={{ uri: user.profileImage }} 
+                source={{ uri: (user as any).profileImage }} 
                 style={styles.profileImage} 
               />
             ) : (
@@ -97,9 +97,18 @@ export default function ProfileScreen() {
           </View>
           <Text style={styles.profileName}>{user?.name}</Text>
           <Text style={styles.profileRole}>
-            {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Unknown'}
+            {(() => {
+              if (user && (user as any).licenseNumber) {
+                const license = ((user as any).licenseNumber as string).toLowerCase();
+                if (license.startsWith('dr')) return 'Doctor';
+                if (license.startsWith('n')) return 'Nurse';
+                if (license.startsWith('f')) return 'Pharmacist';
+                if (license.startsWith('l')) return 'Laboratory';
+              }
+              return user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Unknown';
+            })()}
           </Text>
-          
+          <Text style={styles.profileRole}>{user?.email}</Text>
           <TouchableOpacity 
             style={styles.editProfileButton}
             onPress={() => router.push('/profile/edit')}
@@ -108,47 +117,79 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
         
-        {user?.role === 'patient' && (
-          <View style={styles.infoSection}>
+        {/* User Data Section */}
+        <View style={styles.infoSection}>
+          {(user && (user as any).medicalRecordNumber) && (
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Medical Record Number</Text>
-              <Text style={styles.infoValue}>293847</Text>
+              <Text style={styles.infoValue}>{(user as any).medicalRecordNumber}</Text>
             </View>
+          )}
+          {(user && (user as any).dateOfBirth) && (
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Date of Birth</Text>
-              <Text style={styles.infoValue}>May 12, 1981</Text>
+              <Text style={styles.infoValue}>{(user as any).dateOfBirth}</Text>
             </View>
+          )}
+          {(user && (user as any).gender) && (
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Gender</Text>
+              <Text style={styles.infoValue}>{(user as any).gender}</Text>
+            </View>
+          )}
+          {(user && (user as any).bloodType) && (
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Blood Type</Text>
-              <Text style={styles.infoValue}>A+</Text>
+              <Text style={styles.infoValue}>{(user as any).bloodType}</Text>
             </View>
+          )}
+          {(user && (user as any).allergies && (user as any).allergies.length > 0) && (
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Allergies</Text>
+              <Text style={styles.infoValue}>{(user as any).allergies.join(', ')}</Text>
+            </View>
+          )}
+          {(user && (user as any).conditions && (user as any).conditions.length > 0) && (
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Conditions</Text>
+              <Text style={styles.infoValue}>{(user as any).conditions.join(', ')}</Text>
+            </View>
+          )}
+          {(user && (user as any).emergencyContact) && (
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Emergency Contact</Text>
-              <Text style={styles.infoValue}>John Johnson (Spouse)</Text>
+              <Text style={styles.infoValue}>{(user as any).emergencyContact.name} ({(user as any).emergencyContact.relationship}) - {(user as any).emergencyContact.phone}</Text>
             </View>
-          </View>
-        )}
+          )}
+          {(user && (user as any).specialty) && (
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Specialty</Text>
+              <Text style={styles.infoValue}>{(user as any).specialty}</Text>
+            </View>
+          )}
+          {(user && (user as any).hospital) && (
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Hospital</Text>
+              <Text style={styles.infoValue}>{(user as any).hospital}</Text>
+            </View>
+          )}
+          {(user && (user as any).licenseNumber) && (
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>License Number</Text>
+              <Text style={styles.infoValue}>{(user as any).licenseNumber}</Text>
+            </View>
+          )}
+          {(user && (user as any).rating) && (
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Rating</Text>
+              <Text style={styles.infoValue}>{(user as any).rating} ★</Text>
+            </View>
+          )}
+          {/* Add more fields as needed for nurse, pharmacist, laboratory, etc. */}
+        </View>
         
-        {user?.role === 'doctor' && (
+        {user?.role?.toLowerCase() === 'doctor' && (
           <>
-            <View style={styles.infoSection}>
-              <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Specialty</Text>
-                <Text style={styles.infoValue}>Cardiology</Text>
-              </View>
-              <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Hospital</Text>
-                <Text style={styles.infoValue}>Memorial Hospital</Text>
-              </View>
-              <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>License Number</Text>
-                <Text style={styles.infoValue}>MD12345</Text>
-              </View>
-              <View style={styles.infoItem}>
-                <Text style={styles.infoLabel}>Rating</Text>
-                <Text style={styles.infoValue}>4.9 ★</Text>
-              </View>
-            </View>
             {renderFinancialOverview()}
           </>
         )}

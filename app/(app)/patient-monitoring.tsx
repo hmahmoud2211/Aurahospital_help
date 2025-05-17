@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { UserIcon, ArrowRight } from 'lucide-react-native';
 import Colors from '@/constants/colors';
@@ -12,13 +12,15 @@ import HealthMetricCard from '@/components/HealthMetricCard';
 export default function PatientMonitoringScreen() {
   const router = useRouter();
   const { currentPatient, vitalSigns, setCurrentPatient } = usePatientStore();
+  const { patientId } = useLocalSearchParams();
   
   useEffect(() => {
-    // Initialize with the first patient
-    if (!currentPatient) {
+    if (patientId) {
+      setCurrentPatient(String(patientId));
+    } else if (!currentPatient) {
       setCurrentPatient('p1');
     }
-  }, [currentPatient, setCurrentPatient]);
+  }, [patientId, currentPatient, setCurrentPatient]);
   
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -57,6 +59,20 @@ export default function PatientMonitoringScreen() {
           </View>
           <View style={styles.patientInfo}>
             <Text style={styles.patientName}>{currentPatient.name}</Text>
+            <Text style={styles.patientDemographics}>
+              {currentPatient.gender && `Gender: ${currentPatient.gender}  `}
+              {currentPatient.dateOfBirth && `DOB: ${currentPatient.dateOfBirth}`}
+            </Text>
+            {currentPatient.allergies && currentPatient.allergies.length > 0 && (
+              <Text style={styles.patientDemographics}>
+                Allergies: {currentPatient.allergies.join(', ')}
+              </Text>
+            )}
+            {currentPatient.conditions && currentPatient.conditions.length > 0 && (
+              <Text style={styles.patientDemographics}>
+                Conditions: {currentPatient.conditions.join(', ')}
+              </Text>
+            )}
             <View style={styles.patientStatusContainer}>
               <View style={styles.statusDot} />
               <Text style={styles.patientStatus}>Stable</Text>
@@ -246,6 +262,11 @@ const styles = StyleSheet.create({
   patientName: {
     ...Typography.h4,
     marginBottom: 4,
+  },
+  patientDemographics: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    marginBottom: 2,
   },
   patientStatusContainer: {
     flexDirection: 'row',

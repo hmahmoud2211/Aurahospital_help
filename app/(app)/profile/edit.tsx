@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,12 +13,22 @@ export default function EditProfileScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   
-  const [name, setName] = useState(user?.name || '');
-  const [email, setEmail] = useState(user?.email || '');
-  const [phone, setPhone] = useState('555-123-4567');
-  const [dateOfBirth, setDateOfBirth] = useState('1981-05-12');
-  const [address, setAddress] = useState('123 Main St, Anytown, USA');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [address, setAddress] = useState('');
   
+  useEffect(() => {
+    if (user) {
+      setName(user.name || '');
+      setEmail(user.email || '');
+      setPhone((user as any).phone || '');
+      setDateOfBirth((user as any).dateOfBirth || '');
+      setAddress((user as any).address || '');
+    }
+  }, [user]);
+
   const handleSave = () => {
     // In a real app, we would update the user profile here
     router.back();
@@ -31,9 +41,9 @@ export default function EditProfileScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.profileImageSection}>
           <View style={styles.profileImageContainer}>
-            {user?.profileImage ? (
+            {user && (user as any).profileImage ? (
               <Image 
-                source={{ uri: user.profileImage }} 
+                source={{ uri: (user as any).profileImage }} 
                 style={styles.profileImage} 
               />
             ) : (
