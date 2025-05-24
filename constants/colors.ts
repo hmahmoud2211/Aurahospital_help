@@ -6,6 +6,7 @@ export default {
     success: '#4CAF50',
     warning: '#FFC107',
     danger: '#F44336',
+    dangerLight: '#FFEBEE',
     info: '#2196F3',
     background: '#FFFFFF',
     card: '#FFFFFF',
@@ -16,4 +17,7 @@ export default {
     statusBar: '#3A49E0',
     tabBar: '#FFFFFF',
     tabBarInactive: '#CCCCCC',
+    white: '#FFFFFF',
+    inputBackground: '#F5F5F5',
+    successLight: '#E8F5E9',
   };

@@ -35,8 +35,14 @@ export const useAppointmentStore = create<AppointmentState>()(
           const params = new URLSearchParams();
           if (userRole === 'patient') {
             params.append('patient_id', userId);
-          } else if (userRole === 'doctor') {
+          } else if (userRole === 'doctor' || userRole === 'nurse') {
             params.append('doctor_id', userId);
+          }
+          
+          // For nurses, we want to see all appointments
+          if (userRole === 'nurse') {
+            // Don't filter by specific doctor for nurses
+            params.delete('doctor_id');
           }
           
           const response = await fetch(`${API_URL}/appointments/?${params.toString()}`);
@@ -128,7 +134,7 @@ export const useAppointmentStore = create<AppointmentState>()(
           }
           
           set((state) => ({
-            appointments: state.appointments.filter((apt) => apt.id !== appointmentId),
+            appointments: state.appointments.filter((apt) => String(apt.id) !== appointmentId),
             isLoading: false,
           }));
           
@@ -143,7 +149,7 @@ export const useAppointmentStore = create<AppointmentState>()(
         set({ isLoading: true, error: null });
         
         try {
-          const appointment = get().appointments.find((apt) => apt.id === appointmentId);
+          const appointment = get().appointments.find((apt) => String(apt.id) === appointmentId);
           if (!appointment) {
             throw new Error('Appointment not found');
           }
@@ -168,7 +174,7 @@ export const useAppointmentStore = create<AppointmentState>()(
           const updatedAppointment = await response.json();
           set((state) => ({
             appointments: state.appointments.map((apt) =>
-              apt.id === appointmentId ? updatedAppointment : apt
+              String(apt.id) === appointmentId ? updatedAppointment : apt
             ),
             isLoading: false,
           }));
@@ -184,7 +190,7 @@ export const useAppointmentStore = create<AppointmentState>()(
         set({ isLoading: true, error: null });
         
         try {
-          const appointment = get().appointments.find((apt) => apt.id === appointmentId);
+          const appointment = get().appointments.find((apt) => String(apt.id) === appointmentId);
           if (!appointment) {
             throw new Error('Appointment not found');
           }
@@ -207,7 +213,7 @@ export const useAppointmentStore = create<AppointmentState>()(
           const updatedAppointment = await response.json();
           set((state) => ({
             appointments: state.appointments.map((apt) =>
-              apt.id === appointmentId ? updatedAppointment : apt
+              String(apt.id) === appointmentId ? updatedAppointment : apt
             ),
             isLoading: false,
           }));

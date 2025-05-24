@@ -166,6 +166,16 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     elif isinstance(user.name, dict):
         name = user.name.get("text", "")
 
+    # Determine if practitioner is a nurse (license number starts with 'N')
+    role = "patient"
+    if isinstance(user, Practitioner):
+        role = "practitioner"
+        # Check if license number starts with 'N' to identify nurses
+        if user.identifier and len(user.identifier) > 0:
+            license_number = next((i.get("value", "") for i in user.identifier if i.get("system") == "license"), "")
+            if license_number.startswith("N"):
+                role = "nurse"
+
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -173,7 +183,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
             "id": user.id,
             "email": user.email,
             "name": name,
-            "role": "patient" if isinstance(user, Patient) else "practitioner"
+            "role": role
         }
     }
 

@@ -57,6 +57,12 @@ export default function TabLayout() {
           title: "Pharmacy",
           tabBarIcon: ({ color, size }) => <Pill size={size} color={color} />,
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.navigate("pharmacy");
+          }
+        })}
       />
       <Tabs.Screen
         name="profile"
