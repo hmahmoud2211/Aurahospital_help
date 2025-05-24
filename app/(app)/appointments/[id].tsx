@@ -17,7 +17,7 @@ export default function AppointmentDetailsScreen() {
   
   useEffect(() => {
     if (id) {
-      fetchAppointmentById(id as string);
+      fetchAppointmentById(parseInt(id as string, 10));
     }
   }, [id]);
   
@@ -72,7 +72,7 @@ export default function AppointmentDetailsScreen() {
           text: 'Yes, Cancel',
           style: 'destructive',
           onPress: async () => {
-            const success = await cancelAppointment(selectedAppointment.id?.toString() || '');
+            const success = await cancelAppointment(selectedAppointment.id || 0);
             if (success) {
               Alert.alert('Success', 'Your appointment has been cancelled.');
               router.back();

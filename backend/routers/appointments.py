@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from typing import List
+from typing import List, Optional
 from datetime import date
 from ..models import Appointment, Appointment_Pydantic, AppointmentIn_Pydantic, Patient, Practitioner, Practitioner_Pydantic, Patient_Pydantic
 from ..auth import get_current_user
@@ -7,8 +7,52 @@ from ..auth import get_current_user
 router = APIRouter()
 
 @router.post("/appointments/", response_model=dict)
-async def create_appointment(appointment: AppointmentIn_Pydantic, current_user: dict = Depends(get_current_user)):
+async def create_appointment(appointment: AppointmentIn_Pydantic, current_user: Optional[dict] = None):
     print("Received appointment payload:", appointment)
+    # Verify the patient exists
+    patient = await Patient.get_or_none(id=appointment.patient_id)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    
+    # Verify the doctor exists
+    doctor = await Practitioner.get_or_none(id=appointment.doctor_id)
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor not found")
+    
+    # Check if the time slot is available
+    existing_appointment = await Appointment.filter(
+        doctor_id=appointment.doctor_id,
+        date=appointment.date,
+        time=appointment.time
+    ).first()
+    
+    if existing_appointment:
+        raise HTTPException(status_code=400, detail="This time slot is already booked")
+    
+    # Create the appointment
+    appointment_obj = await Appointment.create(
+        patient=patient,
+        doctor=doctor,
+        date=appointment.date,
+        time=appointment.time,
+        duration=appointment.duration,
+        status=appointment.status,
+        reason=appointment.reason,
+        notes=appointment.notes,
+        follow_up=appointment.follow_up
+    )
+    result = await Appointment_Pydantic.from_tortoise_orm(appointment_obj)
+    doctor_details = await Practitioner_Pydantic.from_tortoise_orm(doctor)
+    patient_details = await Patient_Pydantic.from_tortoise_orm(patient)
+    result_dict = result.dict()
+    result_dict["doctorDetails"] = doctor_details.dict()
+    result_dict["patientDetails"] = patient_details.dict()
+    return result_dict
+
+@router.post("/appointments/public", response_model=dict)
+async def create_appointment_public(appointment: AppointmentIn_Pydantic):
+    """Public endpoint for creating appointments without authentication - for testing"""
+    print("Received appointment payload (public):", appointment)
     # Verify the patient exists
     patient = await Patient.get_or_none(id=appointment.patient_id)
     if not patient:

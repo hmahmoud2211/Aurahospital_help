@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Appointment, AppointmentStatus } from '@/types/appointment';
 import { API_URL } from '@/constants/config';
+import { useAuthStore } from './auth-store';
 
 interface AppointmentState {
   appointments: Appointment[];
@@ -12,12 +13,21 @@ interface AppointmentState {
   error: string | null;
   
   fetchAppointments: (userId: string, userRole: string) => Promise<void>;
-  fetchAppointmentById: (appointmentId: string) => Promise<void>;
+  fetchAppointmentById: (appointmentId: number) => Promise<void>;
   bookAppointment: (appointmentData: Partial<Appointment>) => Promise<boolean>;
-  cancelAppointment: (appointmentId: string) => Promise<boolean>;
-  rescheduleAppointment: (appointmentId: string, newDate: string, newTime: string) => Promise<boolean>;
-  updateAppointmentStatus: (appointmentId: string, status: AppointmentStatus) => Promise<boolean>;
+  cancelAppointment: (appointmentId: number) => Promise<boolean>;
+  rescheduleAppointment: (appointmentId: number, newDate: string, newTime: string) => Promise<boolean>;
+  updateAppointmentStatus: (appointmentId: number, status: AppointmentStatus) => Promise<boolean>;
 }
+
+// Helper function to get auth headers
+const getAuthHeaders = () => {
+  const { token } = useAuthStore.getState();
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` }),
+  };
+};
 
 export const useAppointmentStore = create<AppointmentState>()(
   persist(
@@ -39,7 +49,9 @@ export const useAppointmentStore = create<AppointmentState>()(
             params.append('doctor_id', userId);
           }
           
-          const response = await fetch(`${API_URL}/appointments/?${params.toString()}`);
+          const response = await fetch(`${API_URL}/appointments/?${params.toString()}`, {
+            headers: getAuthHeaders(),
+          });
           if (!response.ok) {
             throw new Error('Failed to fetch appointments');
           }
@@ -67,7 +79,9 @@ export const useAppointmentStore = create<AppointmentState>()(
         set({ isLoading: true, error: null });
         
         try {
-          const response = await fetch(`${API_URL}/appointments/${appointmentId}`);
+          const response = await fetch(`${API_URL}/appointments/${appointmentId}`, {
+            headers: getAuthHeaders(),
+          });
           if (!response.ok) {
             throw new Error('Failed to fetch appointment details');
           }
@@ -82,31 +96,37 @@ export const useAppointmentStore = create<AppointmentState>()(
       bookAppointment: async (appointmentData) => {
         set({ isLoading: true, error: null });
         try {
+          console.log('📅 Booking appointment with auth token...');
+          
           const response = await fetch(`${API_URL}/appointments/`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify(appointmentData),
           });
+
+          console.log('📅 Response status:', response.status);
 
           if (!response.ok) {
             let errorMsg = 'Failed to book appointment';
             try {
               const errorData = await response.json();
               errorMsg = errorData.detail || errorMsg;
+              console.log('📅 Error response:', errorData);
             } catch {}
             set({ error: errorMsg, isLoading: false });
             return false;
           }
 
           const newAppointment = await response.json();
+          console.log('📅 Appointment booked successfully:', newAppointment);
+          
           set((state) => ({
             appointments: [...state.appointments, newAppointment],
             isLoading: false,
           }));
           return true;
         } catch (error) {
+          console.error('📅 Network error:', error);
           set({ 
             error: error instanceof Error ? error.message : 'Network error. Please try again.',
             isLoading: false 
@@ -121,6 +141,7 @@ export const useAppointmentStore = create<AppointmentState>()(
         try {
           const response = await fetch(`${API_URL}/appointments/${appointmentId}`, {
             method: 'DELETE',
+            headers: getAuthHeaders(),
           });
           
           if (!response.ok) {
@@ -150,9 +171,7 @@ export const useAppointmentStore = create<AppointmentState>()(
           
           const response = await fetch(`${API_URL}/appointments/${appointmentId}`, {
             method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
               ...appointment,
               date: newDate,
@@ -191,9 +210,7 @@ export const useAppointmentStore = create<AppointmentState>()(
           
           const response = await fetch(`${API_URL}/appointments/${appointmentId}`, {
             method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
               ...appointment,
               status,
