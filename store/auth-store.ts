@@ -8,7 +8,7 @@ interface User {
   id: number;
   email: string;
   name: string;
-  role: 'patient' | 'practitioner' | 'nurse';
+  role: 'patient' | 'practitioner';
 }
 
 interface AuthState {

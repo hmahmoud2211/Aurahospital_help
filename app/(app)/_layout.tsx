@@ -1,33 +1,71 @@
-import React from 'react';
-import { Redirect, Slot, Stack } from 'expo-router';
-import { useAuthStore } from '@/store/auth-store';
+import React from "react";
+import { Stack } from "expo-router";
+import { useAuthStore } from "@/store/auth-store";
 import Colors from "@/constants/colors";
 
 export default function AppLayout() {
-    const { isAuthenticated, user } = useAuthStore();
+    const { isAuthenticated } = useAuthStore();
 
     if (!isAuthenticated) {
-        return <Redirect href="/" />;
+        return null;
     }
 
-    // If the user is a nurse, redirect to the nurse dashboard
-    if (user?.role === 'nurse') {
-        return (
-            <Stack
-                screenOptions={{
+    return (
+        <Stack
+            screenOptions={{
+                headerStyle: {
+                    backgroundColor: Colors.primary,
+                },
+                headerTintColor: "#FFFFFF",
+                headerTitleStyle: {
+                    fontWeight: "bold",
+                },
+                headerShadowVisible: false,
+            }}
+        >
+            <Stack.Screen
+                name="(tabs)"
+                options={{
                     headerShown: false,
                 }}
-            >
-                <Stack.Screen name="nurse" options={{ title: 'Nurse Dashboard' }} />
-                <Stack.Screen name="appointment/new" options={{ presentation: 'modal' }} />
-                <Stack.Screen name="appointment/[id]" options={{ presentation: 'card' }} />
-                <Stack.Screen name="appointments" options={{ title: 'All Appointments' }} />
-                <Stack.Screen name="schedule-search" options={{ title: 'Find Patient' }} />
-                <Stack.Screen name="patient-search" options={{ title: 'Find Patient' }} />
-            </Stack>
-        );
-    }
-
-    // Otherwise, use the default tabs layout
-    return <Slot />;
+            />
+            <Stack.Screen
+                name="appointment/[id]"
+                options={{
+                    title: "Appointment Details",
+                }}
+            />
+            <Stack.Screen
+                name="records/[id]"
+                options={{
+                    title: "Medical Record",
+                }}
+            />
+            <Stack.Screen
+                name="pharmacy/[id]"
+                options={{
+                    title: "Prescription Details",
+                }}
+            />
+            <Stack.Screen
+                name="profile/edit"
+                options={{
+                    title: "Edit Profile",
+                }}
+            />
+            <Stack.Screen
+                name="medical-records/upload"
+                options={{
+                    title: "Upload Document",
+                    headerShown: false,
+                }}
+            />
+            <Stack.Screen
+                name="medical-records/[id]"
+                options={{
+                    title: "Document Details",
+                }}
+            />
+        </Stack>
+    );
 }
