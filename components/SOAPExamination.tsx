@@ -127,96 +127,239 @@ const SOAPExamination: React.FC<SOAPExaminationProps> = ({
 
   const startVoiceRecording = async (field: keyof SOAPData) => {
     try {
+      console.log('🎤 Starting voice recording for field:', field);
+      
+      // Check if we're on web and provide appropriate feedback
+      if (Platform.OS === 'web') {
+        console.log('🌐 Running on web platform');
+      }
+      
       setIsVoiceRecording(field);
       const success = await voiceRecordingService.startRecording();
       
       if (!success) {
-        Alert.alert("Recording Error", "Failed to start recording. Please check microphone permissions.");
-        setIsVoiceRecording(null);
+        console.error('❌ Failed to start recording');
+        Alert.alert(
+          "Recording Error", 
+          "Failed to start recording. Please check:\n• Microphone permissions\n• Browser microphone access\n• Internet connection",
+          [
+            {
+              text: "Test with Sample Text",
+              onPress: () => {
+                // Add sample text for testing
+                const sampleText = "Sample diagnosis text for testing";
+                const currentText = soapData[field];
+                const newText = currentText ? `${currentText} ${sampleText}` : sampleText;
+                handleInputChange(field, newText);
+                Alert.alert("Test Mode", `Sample text added to ${field}`);
+                setIsVoiceRecording(null);
+              }
+            },
+            {
+              text: "OK",
+              onPress: () => setIsVoiceRecording(null)
+            }
+          ]
+        );
         return;
       }
 
+      console.log('✅ Recording started successfully');
       Alert.alert(
-        "Voice Recording", 
-        `Recording started for ${field}. Tap the microphone again to stop.`,
+        "🎤 Voice Recording Active", 
+        `Recording started for ${field}.\n\n🔴 SPEAK NOW\n\nTap the microphone again to stop recording.`,
         [
           {
-            text: "Cancel",
+            text: "Cancel Recording",
             onPress: () => stopVoiceRecording(field, true),
             style: "cancel"
           }
         ]
       );
     } catch (error) {
-      console.error('Error starting voice recording:', error);
-      Alert.alert("Error", "Failed to start voice recording.");
+      console.error('❌ Error starting voice recording:', error);
+      Alert.alert(
+        "Voice Recording Error", 
+        `Failed to start voice recording: ${error}\n\nWould you like to test with sample text instead?`,
+        [
+          {
+            text: "Add Sample Text",
+            onPress: () => {
+              const sampleText = "Sample text for testing";
+              const currentText = soapData[field];
+              const newText = currentText ? `${currentText} ${sampleText}` : sampleText;
+              handleInputChange(field, newText);
+              Alert.alert("Test Mode", `Sample text added to ${field}`);
+            }
+          },
+          {
+            text: "Cancel",
+            style: "cancel"
+          }
+        ]
+      );
       setIsVoiceRecording(null);
     }
   };
 
   const stopVoiceRecording = async (field: keyof SOAPData, cancelled: boolean = false) => {
     try {
+      console.log('🛑 Stopping voice recording for field:', field, 'cancelled:', cancelled);
+      
+      // Show processing indicator
+      if (!cancelled) {
+        Alert.alert("🔄 Processing", "Processing your voice recording...\n\nPlease wait...");
+      }
+      
       let result: VoiceRecordingResult;
       
       if (cancelled) {
+        console.log('🚫 Cancelling recording...');
         await voiceRecordingService.cancelRecording();
         result = { success: false, error: 'Recording cancelled' };
       } else {
+        console.log('🔄 Processing recording...');
         result = await voiceRecordingService.stopRecording();
       }
 
       setIsVoiceRecording(null);
 
+      console.log('📝 Transcription result:', result);
+
       if (result.success && result.text) {
         // Append the transcribed text to the existing field content
         const currentText = soapData[field];
         const newText = currentText ? `${currentText} ${result.text}` : result.text;
+        console.log('✨ Adding transcribed text to field:', field, 'Text:', result.text);
+        
+        // Update the field
         handleInputChange(field, newText);
         
+        // Show success message with the transcribed text
         Alert.alert(
-          "Recording Complete", 
-          `Text has been added to ${field}: "${result.text}"`
+          "✅ Voice Recording Complete!", 
+          `Your speech has been successfully transcribed and added to ${field}:\n\n"${result.text}"\n\nThe text has been automatically added to the ${field} field.`,
+          [
+            {
+              text: "Great!",
+              style: "default"
+            }
+          ]
         );
-      } else if (result.error) {
-        Alert.alert("Recording Failed", result.error);
+      } else if (result.error && !cancelled) {
+        console.error('❌ Recording failed:', result.error);
+        Alert.alert(
+          "Recording Failed", 
+          `${result.error}\n\nWould you like to try again or add sample text?`,
+          [
+            {
+              text: "Try Again",
+              onPress: () => startVoiceRecording(field)
+            },
+            {
+              text: "Add Sample Text",
+              onPress: () => {
+                const sampleText = "Sample text for testing";
+                const currentText = soapData[field];
+                const newText = currentText ? `${currentText} ${sampleText}` : sampleText;
+                handleInputChange(field, newText);
+                Alert.alert("Test Mode", `Sample text added to ${field}`);
+              }
+            },
+            {
+              text: "Cancel",
+              style: "cancel"
+            }
+          ]
+        );
+      } else if (cancelled) {
+        console.log('✅ Recording cancelled by user');
+        Alert.alert("Recording Cancelled", "Voice recording has been cancelled.");
       }
     } catch (error) {
-      console.error('Error stopping voice recording:', error);
-      Alert.alert("Error", "Failed to process voice recording.");
+      console.error('❌ Error stopping voice recording:', error);
+      Alert.alert(
+        "Processing Error", 
+        `Failed to process voice recording: ${error}\n\nPlease try again.`,
+        [
+          {
+            text: "Try Again",
+            onPress: () => startVoiceRecording(field)
+          },
+          {
+            text: "Cancel",
+            style: "cancel"
+          }
+        ]
+      );
       setIsVoiceRecording(null);
     }
+  };
+
+  const testTextInput = (field: keyof SOAPData) => {
+    const testTexts = {
+      diagnosis: "Acute upper respiratory infection with mild fever",
+      symptoms: "Cough, sore throat, nasal congestion, low-grade fever",
+      allergies: "No known allergies",
+      treatmentPlan: "Rest, fluids, over-the-counter pain relievers as needed",
+      additionalNotes: "Follow up in 1 week if symptoms persist"
+    };
+    
+    const currentText = soapData[field];
+    const testText = testTexts[field];
+    const newText = currentText ? `${currentText} ${testText}` : testText;
+    
+    handleInputChange(field, newText);
+    console.log('✅ Test text added to field:', field);
+    Alert.alert("Test Successful", `Test text has been added to the ${field} field!`);
   };
 
   const renderVoiceButton = (field: keyof SOAPData) => {
     const isRecordingThisField = isVoiceRecording === field;
     
     return (
-      <TouchableOpacity 
-        style={[
-          styles.voiceButton,
-          isRecordingThisField && styles.voiceButtonRecording
-        ]}
-        onPress={() => {
-          if (isRecordingThisField) {
-            stopVoiceRecording(field);
-          } else if (!isVoiceRecording) {
-            startVoiceRecording(field);
-          }
-        }}
-        disabled={isVoiceRecording !== null && !isRecordingThisField}
-      >
-        {isRecordingThisField ? (
-          <StopCircle 
-            size={20} 
-            color={Colors.danger}
-          />
-        ) : (
-          <Mic 
-            size={20} 
-            color={isVoiceRecording ? Colors.textSecondary : Colors.primary} 
-          />
-        )}
-      </TouchableOpacity>
+      <View style={styles.voiceButtonContainer}>
+        <TouchableOpacity 
+          style={[
+            styles.voiceButton,
+            isRecordingThisField && styles.voiceButtonRecording
+          ]}
+          onPress={() => {
+            if (isRecordingThisField) {
+              stopVoiceRecording(field);
+            } else if (!isVoiceRecording) {
+              startVoiceRecording(field);
+            }
+          }}
+          disabled={isVoiceRecording !== null && !isRecordingThisField}
+        >
+          {isRecordingThisField ? (
+            <StopCircle 
+              size={20} 
+              color={Colors.danger}
+            />
+          ) : (
+            <Mic 
+              size={20} 
+              color={isVoiceRecording ? Colors.textSecondary : Colors.primary} 
+            />
+          )}
+        </TouchableOpacity>
+        
+        {/* Add a small test button for debugging */}
+        <TouchableOpacity 
+          style={styles.testButton}
+          onPress={() => testTextInput(field)}
+          onLongPress={() => {
+            Alert.alert(
+              "Voice Recording Test", 
+              "Long press detected! This button adds test text to verify the input field is working correctly."
+            );
+          }}
+        >
+          <Text style={styles.testButtonText}>T</Text>
+        </TouchableOpacity>
+      </View>
     );
   };
 
@@ -544,6 +687,10 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: 'top',
   },
+  voiceButtonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   voiceButton: {
     padding: 12,
     alignSelf: 'flex-start',
@@ -551,6 +698,14 @@ const styles = StyleSheet.create({
   voiceButtonRecording: {
     backgroundColor: Colors.card,
     borderRadius: 6,
+  },
+  testButton: {
+    padding: 4,
+    alignSelf: 'flex-start',
+  },
+  testButtonText: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
   },
   prescriptionHeader: {
     flexDirection: 'row',

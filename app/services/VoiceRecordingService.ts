@@ -1,5 +1,6 @@
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
+import { Platform } from 'react-native';
 import ENV from '../config/env';
 
 export interface VoiceRecordingResult {
@@ -106,11 +107,16 @@ export class VoiceRecordingService {
       // Convert audio to text using Groq API
       const transcriptionResult = await this.transcribeAudio(uri);
       
-      // Clean up the recording file
-      try {
-        await FileSystem.deleteAsync(uri);
-      } catch (cleanupError) {
-        console.warn('Failed to cleanup recording file:', cleanupError);
+      // Clean up the recording file (only on mobile, web handles cleanup automatically)
+      if (Platform.OS !== 'web') {
+        try {
+          await FileSystem.deleteAsync(uri);
+          console.log('🗑️ Mobile: Cleaned up audio file');
+        } catch (cleanupError) {
+          console.warn('⚠️ Failed to cleanup recording file:', cleanupError);
+        }
+      } else {
+        console.log('🌐 Web: Blob URL cleanup handled by browser');
       }
 
       this.recording = null;
@@ -128,21 +134,33 @@ export class VoiceRecordingService {
 
   private async transcribeAudio(audioUri: string): Promise<VoiceRecordingResult> {
     try {
-      // Read the audio file
-      const audioBase64 = await FileSystem.readAsStringAsync(audioUri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      let audioBlob: Blob;
+      
+      if (Platform.OS === 'web') {
+        // On web, audioUri is a blob URL, fetch it directly
+        console.log('🌐 Web platform: Converting blob URL to audio data');
+        const response = await fetch(audioUri);
+        audioBlob = await response.blob();
+      } else {
+        // On mobile, read the file and convert to blob
+        console.log('📱 Mobile platform: Reading audio file');
+        const audioBase64 = await FileSystem.readAsStringAsync(audioUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        audioBlob = this.base64ToBlob(audioBase64, 'audio/m4a');
+      }
 
-      // Convert base64 to blob for FormData
-      const audioBlob = this.base64ToBlob(audioBase64, 'audio/m4a');
+      console.log('🎵 Audio blob size:', audioBlob.size, 'bytes');
 
       // Create FormData
       const formData = new FormData();
-      formData.append('file', audioBlob, 'audio.m4a');
+      formData.append('file', audioBlob, Platform.OS === 'web' ? 'audio.webm' : 'audio.m4a');
       formData.append('model', ENV.WHISPER_MODEL);
       formData.append('temperature', ENV.WHISPER_TEMPERATURE.toString());
       formData.append('response_format', ENV.WHISPER_RESPONSE_FORMAT);
       formData.append('prompt', '');
+
+      console.log('🚀 Sending transcription request to Groq API...');
 
       // Make API request to Groq
       const response = await fetch(ENV.GROQ_API_URL, {
@@ -155,15 +173,15 @@ export class VoiceRecordingService {
 
       if (!response.ok) {
         const errorData = await response.text();
-        console.error('Groq API error:', response.status, errorData);
+        console.error('❌ Groq API error:', response.status, errorData);
         return {
           success: false,
-          error: `Transcription failed: ${response.status}`
+          error: `Transcription failed: ${response.status} - ${errorData}`
         };
       }
 
       const data = await response.json();
-      console.log('Transcription response:', data);
+      console.log('✅ Transcription response:', data);
 
       if (data.text) {
         return {
@@ -177,10 +195,10 @@ export class VoiceRecordingService {
         };
       }
     } catch (error) {
-      console.error('Transcription error:', error);
+      console.error('❌ Transcription error:', error);
       return {
         success: false,
-        error: 'Failed to transcribe audio'
+        error: `Failed to transcribe audio: ${error}`
       };
     }
   }
@@ -200,12 +218,17 @@ export class VoiceRecordingService {
       if (this.isRecording && this.recording) {
         await this.recording.stopAndUnloadAsync();
         const uri = this.recording.getURI();
-        if (uri) {
+        
+        // Only cleanup files on mobile platforms
+        if (uri && Platform.OS !== 'web') {
           await FileSystem.deleteAsync(uri);
+          console.log('🗑️ Mobile: Cancelled and cleaned up audio file');
+        } else if (Platform.OS === 'web') {
+          console.log('🌐 Web: Recording cancelled, blob cleanup handled by browser');
         }
       }
     } catch (error) {
-      console.error('Failed to cancel recording:', error);
+      console.error('❌ Failed to cancel recording:', error);
     } finally {
       this.isRecording = false;
       this.recording = null;
