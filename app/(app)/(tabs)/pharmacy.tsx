@@ -239,7 +239,7 @@ export default function PharmacyScreen() {
     return userMedications.filter(med => med.status === filterStatus);
   };
   
-  // Only show View All button for doctor/nurse roles
+  // Only show View All button for doctor roles
   const shouldShowViewAll = user?.role === 'practitioner';
 
   return (
@@ -425,7 +425,7 @@ export default function PharmacyScreen() {
                 </TouchableOpacity>
               </View>
               
-              {/* Patient filter for doctor/nurse view */}
+              {/* Patient filter for doctor view */}
               {(user?.role === 'practitioner') && (
                 <View style={styles.patientFilterContainer}>
                   <Text style={styles.filterLabel}>Patient:</Text>
@@ -519,7 +519,7 @@ export default function PharmacyScreen() {
                         </View>
                       </View>
                       
-                      {/* Show patient name for doctor/nurse view */}
+                      {/* Show patient name for doctor view */}
                       {(user?.role === 'practitioner') && item.patientName && (
                         <View style={styles.patientInfoContainer}>
                           <User size={14} color={Colors.textSecondary} />

@@ -30,6 +30,26 @@ export default function AppLayout() {
                 }}
             />
             <Stack.Screen
+                name="laborist"
+                options={{
+                    headerShown: false,
+                }}
+            />
+            <Stack.Screen
+                name="laborist/upload"
+                options={{
+                    title: "Upload Medical File",
+                    headerShown: false,
+                }}
+            />
+            <Stack.Screen
+                name="laborist/chat"
+                options={{
+                    title: "Laboratory Assistant",
+                    headerShown: false,
+                }}
+            />
+            <Stack.Screen
                 name="appointment/[id]"
                 options={{
                     title: "Appointment Details",

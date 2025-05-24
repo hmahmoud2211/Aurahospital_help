@@ -7,15 +7,20 @@ import Colors from "@/constants/colors";
 
 export default function RootLayout() {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
 
   useEffect(() => {
-    if (isAuthenticated) {
-      router.replace("/(app)/(tabs)");
-    } else {
+    if (isAuthenticated && user) {
+      // Redirect laborist users to their specialized screen
+      if (user.role === 'laborist') {
+        router.replace("/(app)/laborist");
+      } else {
+        router.replace("/(app)/(tabs)");
+      }
+    } else if (!isAuthenticated) {
       router.replace("/(auth)");
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user]);
 
   return (
     <Stack

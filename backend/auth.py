@@ -3,7 +3,8 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from typing import Optional
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+# from passlib.context import CryptContext
+import hashlib
 from backend.models import Patient, Practitioner
 from pydantic import BaseModel
 from tortoise.exceptions import DoesNotExist
@@ -29,7 +30,13 @@ SMTP_PASSWORD = "bvnr tjdk mejr stdb"  # Your Gmail app password
 # Store verification codes (in production, use Redis or a database)
 verification_codes = {}
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Simple password hashing (temporary solution)
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def verify_password(password: str, hashed: str) -> bool:
+    return hashlib.sha256(password.encode()).hexdigest() == hashed
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -94,10 +101,23 @@ async def register(user_data: dict):
             raise HTTPException(status_code=400, detail="Email already registered")
 
         # Hash password
-        hashed_password = pwd_context.hash(user_data["password"])
+        hashed_password = hash_password(user_data["password"])
+        
+        # Determine user role based on license number or explicit role
+        user_role = user_data.get("role", "patient")
+        license_number = user_data.get("licenseNumber", "")
+        
+        # If license number starts with 'F', user is a pharmacist
+        # If license number starts with 'L', user is a laborist
+        if license_number.startswith('F'):
+            user_role = "pharmacist"
+        elif license_number.startswith('L'):
+            user_role = "laborist"
+        elif license_number and user_role == "patient":
+            user_role = "practitioner"
         
         # Create user based on role
-        if user_data.get("role") == "patient":
+        if user_role == "patient":
             user = await Patient.create(
                 name=[{
                     "use": "official",
@@ -116,6 +136,15 @@ async def register(user_data: dict):
                 password_hash=hashed_password
             )
         else:
+            # Both practitioners and pharmacists are stored in Practitioner table
+            specialty_list = []
+            if user_role == "pharmacist":
+                specialty_list = ["Pharmacy"]
+            elif user_role == "laborist":
+                specialty_list = ["Laboratory"]
+            elif user_data.get("specialty"):
+                specialty_list = [user_data["specialty"]]
+            
             user = await Practitioner.create(
                 name=[{
                     "use": "official",
@@ -124,28 +153,64 @@ async def register(user_data: dict):
                 email=user_data["email"],
                 identifier=[{
                     "system": "license",
-                    "value": user_data.get("licenseNumber", "")
+                    "value": license_number
                 }],
                 telecom=[{
                     "system": "phone",
                     "value": user_data.get("phone", "")
                 }],
-                specialty=[user_data.get("specialty", "")],
+                specialty=specialty_list,
                 password_hash=hashed_password
             )
 
-        return {"message": "User created successfully", "user_id": user.id}
+        return {"message": "User created successfully", "user_id": user.id, "role": user_role}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/token")
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # Try to find user in both Patient and Practitioner models
-    user = await Patient.get_or_none(email=form_data.username)
-    if not user:
-        user = await Practitioner.get_or_none(email=form_data.username)
+    user = None
+    user_role = None
     
-    if not user or not pwd_context.verify(form_data.password, user.password_hash):
+    # Check Patient table first
+    patient = await Patient.get_or_none(email=form_data.username)
+    if patient:
+        user = patient
+        user_role = "patient"
+    else:
+        # Check Practitioner table
+        practitioner = await Practitioner.get_or_none(email=form_data.username)
+        if practitioner:
+            user = practitioner
+            # Determine if practitioner is a pharmacist
+            license_number = ""
+            if practitioner.identifier:
+                for identifier in practitioner.identifier:
+                    if identifier.get("system") == "license":
+                        license_number = identifier.get("value", "")
+                        break
+            
+            # Check if pharmacist by license number or specialty
+            is_pharmacist = (
+                license_number.startswith('F') or 
+                (practitioner.specialty and "Pharmacy" in practitioner.specialty)
+            )
+            
+            # Check if laborist by license number or specialty
+            is_laborist = (
+                license_number.startswith('L') or 
+                (practitioner.specialty and "Laboratory" in practitioner.specialty)
+            )
+            
+            if is_pharmacist:
+                user_role = "pharmacist"
+            elif is_laborist:
+                user_role = "laborist"
+            else:
+                user_role = "practitioner"
+    
+    if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(
             status_code=401,
             detail="Incorrect email or password",
@@ -155,7 +220,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     # Create access token
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.email, "id": user.id},
+        data={"sub": user.email, "id": user.id, "role": user_role},
         expires_delta=access_token_expires
     )
 
@@ -173,7 +238,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
             "id": user.id,
             "email": user.email,
             "name": name,
-            "role": "patient" if isinstance(user, Patient) else "practitioner"
+            "role": user_role
         }
     }
 
@@ -291,7 +356,7 @@ async def reset_password(request: ResetPasswordRequest):
         if not user.telecom or not any(t.get('value') == request.mobileNumber for t in user.telecom):
             raise HTTPException(status_code=400, detail="Mobile number does not match our records")
         # Hash the new password
-        hashed_password = pwd_context.hash(request.newPassword)
+        hashed_password = hash_password(request.newPassword)
         # Update the user's password
         user.password_hash = hashed_password
         await user.save()
@@ -299,6 +364,61 @@ async def reset_password(request: ResetPasswordRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-async def get_current_user():
-    # Dummy user for testing
-    return {"id": 1, "role": "patient"} 
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        user_id: int = payload.get("id")
+        user_role: str = payload.get("role")
+        if email is None or user_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    
+    # Get user from database based on role
+    if user_role == "patient":
+        user = await Patient.get_or_none(id=user_id)
+    else:
+        user = await Practitioner.get_or_none(id=user_id)
+    
+    if user is None:
+        raise credentials_exception
+    
+    return {"id": user.id, "email": user.email, "role": user_role}
+
+async def get_current_practitioner(token: str = Depends(oauth2_scheme)):
+    """Get current practitioner user (excludes patients)"""
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        user_id: int = payload.get("id")
+        user_role: str = payload.get("role")
+        if email is None or user_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    
+    # Ensure user is not a patient
+    if user_role == "patient":
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied. Only practitioners can access this resource."
+        )
+    
+    # Get practitioner from database
+    practitioner = await Practitioner.get_or_none(id=user_id)
+    
+    if practitioner is None:
+        raise credentials_exception
+    
+    return practitioner 

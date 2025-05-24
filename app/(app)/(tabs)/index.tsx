@@ -53,6 +53,14 @@ export default function HomeScreen() {
   const { upcomingAppointments, fetchAppointments } = useAppointmentStore();
   const [emergencyAlert, setEmergencyAlert] = useState<string | null>(null);
 
+  // Redirect pharmacists to pharmacy management dashboard
+  useEffect(() => {
+    if (user?.role === 'pharmacist') {
+      router.replace('/(app)/(tabs)/pharmacy-management');
+      return;
+    }
+  }, [user, router]);
+
   // Debug: Log user data
   console.log('User object:', user);
   console.log('User role:', user?.role);

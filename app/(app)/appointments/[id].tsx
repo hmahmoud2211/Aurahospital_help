@@ -72,7 +72,7 @@ export default function AppointmentDetailsScreen() {
           text: 'Yes, Cancel',
           style: 'destructive',
           onPress: async () => {
-            const success = await cancelAppointment(selectedAppointment.id);
+            const success = await cancelAppointment(selectedAppointment.id?.toString() || '');
             if (success) {
               Alert.alert('Success', 'Your appointment has been cancelled.');
               router.back();
@@ -86,12 +86,17 @@ export default function AppointmentDetailsScreen() {
   const handleReschedule = () => {
     router.push({
       pathname: '/appointments/reschedule',
-      params: { id: selectedAppointment.id }
+      params: { id: selectedAppointment.id?.toString() || '' }
     });
   };
   
   const handleShare = () => {
-    const message = `Appointment with ${selectedAppointment.doctor?.name} on ${formatDate(selectedAppointment.date)} at ${formatTime(selectedAppointment.time)}`;
+    const doctorName = selectedAppointment.doctorDetails?.name ? 
+      (Array.isArray(selectedAppointment.doctorDetails.name) ? 
+        selectedAppointment.doctorDetails.name[0]?.text : 
+        selectedAppointment.doctorDetails.name) : 
+      'Dr. Unknown';
+    const message = `Appointment with ${doctorName} on ${formatDate(selectedAppointment.date)} at ${formatTime(selectedAppointment.time)}`;
     
     if (Platform.OS === 'web') {
       Alert.alert('Share', 'Sharing is not available on web.');
