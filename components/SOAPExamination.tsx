@@ -13,10 +13,11 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X, Plus, Search, Trash, Mic } from 'lucide-react-native';
+import { X, Plus, Search, Trash, Mic, StopCircle } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import Typography from '@/constants/typography';
 import { searchMedications, Drug } from '@/data/drugsDatabase';
+import { voiceRecordingService, VoiceRecordingResult } from '@/app/services/VoiceRecordingService';
 
 export interface SOAPExaminationProps {
   patientId: string;
@@ -124,31 +125,97 @@ const SOAPExamination: React.FC<SOAPExaminationProps> = ({
     onSave(soapData, prescriptions);
   };
 
-  const startVoiceRecording = (field: keyof SOAPData) => {
-    setIsVoiceRecording(field);
-    // In a real app, this would start the voice recording
-    // For now, we'll simulate it with a timeout
-    Alert.alert("Voice Recording", "Voice recording started. Say what you want to add to the " + field + " field.");
-    
-    // Simulate voice recording result after 2 seconds
-    setTimeout(() => {
-      const voiceText = `Sample ${field} text from voice input`;
-      handleInputChange(field, soapData[field] + (soapData[field] ? ' ' : '') + voiceText);
+  const startVoiceRecording = async (field: keyof SOAPData) => {
+    try {
+      setIsVoiceRecording(field);
+      const success = await voiceRecordingService.startRecording();
+      
+      if (!success) {
+        Alert.alert("Recording Error", "Failed to start recording. Please check microphone permissions.");
+        setIsVoiceRecording(null);
+        return;
+      }
+
+      Alert.alert(
+        "Voice Recording", 
+        `Recording started for ${field}. Tap the microphone again to stop.`,
+        [
+          {
+            text: "Cancel",
+            onPress: () => stopVoiceRecording(field, true),
+            style: "cancel"
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Error starting voice recording:', error);
+      Alert.alert("Error", "Failed to start voice recording.");
       setIsVoiceRecording(null);
-      Alert.alert("Voice Recording", "Voice recording completed and text added.");
-    }, 2000);
+    }
+  };
+
+  const stopVoiceRecording = async (field: keyof SOAPData, cancelled: boolean = false) => {
+    try {
+      let result: VoiceRecordingResult;
+      
+      if (cancelled) {
+        await voiceRecordingService.cancelRecording();
+        result = { success: false, error: 'Recording cancelled' };
+      } else {
+        result = await voiceRecordingService.stopRecording();
+      }
+
+      setIsVoiceRecording(null);
+
+      if (result.success && result.text) {
+        // Append the transcribed text to the existing field content
+        const currentText = soapData[field];
+        const newText = currentText ? `${currentText} ${result.text}` : result.text;
+        handleInputChange(field, newText);
+        
+        Alert.alert(
+          "Recording Complete", 
+          `Text has been added to ${field}: "${result.text}"`
+        );
+      } else if (result.error) {
+        Alert.alert("Recording Failed", result.error);
+      }
+    } catch (error) {
+      console.error('Error stopping voice recording:', error);
+      Alert.alert("Error", "Failed to process voice recording.");
+      setIsVoiceRecording(null);
+    }
   };
 
   const renderVoiceButton = (field: keyof SOAPData) => {
+    const isRecordingThisField = isVoiceRecording === field;
+    
     return (
       <TouchableOpacity 
-        style={styles.voiceButton}
-        onPress={() => startVoiceRecording(field)}
+        style={[
+          styles.voiceButton,
+          isRecordingThisField && styles.voiceButtonRecording
+        ]}
+        onPress={() => {
+          if (isRecordingThisField) {
+            stopVoiceRecording(field);
+          } else if (!isVoiceRecording) {
+            startVoiceRecording(field);
+          }
+        }}
+        disabled={isVoiceRecording !== null && !isRecordingThisField}
       >
-        <Mic 
-          size={20} 
-          color={isVoiceRecording === field ? Colors.primary : Colors.textSecondary} 
-        />
+        {isRecordingThisField ? (
+          <StopCircle 
+            size={20} 
+            color={Colors.danger}
+          />
+        ) : (
+          <Mic 
+            size={20} 
+            color={isVoiceRecording ? Colors.textSecondary : Colors.primary} 
+          />
+        )}
       </TouchableOpacity>
     );
   };
@@ -480,6 +547,10 @@ const styles = StyleSheet.create({
   voiceButton: {
     padding: 12,
     alignSelf: 'flex-start',
+  },
+  voiceButtonRecording: {
+    backgroundColor: Colors.card,
+    borderRadius: 6,
   },
   prescriptionHeader: {
     flexDirection: 'row',

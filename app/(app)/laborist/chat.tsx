@@ -1,13 +1,13 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import LaboristChatComponent from '../../components/LaboristChatComponent';
+import MedicalChat from '../../components/MedicalChat';
 import Colors from '@/constants/colors';
 
 export default function LaboristChatScreen() {
   return (
     <SafeAreaView style={styles.container}>
-      <LaboristChatComponent />
+      <MedicalChat />
     </SafeAreaView>
   );
 }
