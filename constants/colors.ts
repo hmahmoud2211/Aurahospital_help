@@ -17,7 +17,4 @@ export default {
     statusBar: '#3A49E0',
     tabBar: '#FFFFFF',
     tabBarInactive: '#CCCCCC',
-    white: '#FFFFFF',
-    inputBackground: '#F5F5F5',
-    successLight: '#E8F5E9',
   };
