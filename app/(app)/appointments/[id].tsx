@@ -91,11 +91,18 @@ export default function AppointmentDetailsScreen() {
   };
   
   const handleShare = () => {
-    const doctorName = selectedAppointment.doctorDetails?.name ? 
-      (Array.isArray(selectedAppointment.doctorDetails.name) ? 
-        selectedAppointment.doctorDetails.name[0]?.text : 
-        selectedAppointment.doctorDetails.name) : 
-      'Dr. Unknown';
+    const getDoctorName = () => {
+      const doctorDetails = selectedAppointment.doctorDetails;
+      if (!doctorDetails?.name) return 'Dr. Unknown';
+      
+      if (Array.isArray(doctorDetails.name)) {
+        return doctorDetails.name[0]?.text || 'Dr. Unknown';
+      }
+      
+      return doctorDetails.name || 'Dr. Unknown';
+    };
+    
+    const doctorName = getDoctorName();
     const message = `Appointment with ${doctorName} on ${formatDate(selectedAppointment.date)} at ${formatTime(selectedAppointment.time)}`;
     
     if (Platform.OS === 'web') {
@@ -131,18 +138,28 @@ export default function AppointmentDetailsScreen() {
               </View>
               <View style={styles.doctorInfo}>
                 <Text style={styles.doctorName}>
-                  {selectedAppointment.doctorDetails?.name ? 
-                    (Array.isArray(selectedAppointment.doctorDetails.name) ? 
-                      selectedAppointment.doctorDetails.name[0]?.text : 
-                      selectedAppointment.doctorDetails.name) : 
-                    'Dr. Unknown'}
+                  {(() => {
+                    const doctorDetails = selectedAppointment.doctorDetails;
+                    if (!doctorDetails?.name) return 'Dr. Unknown';
+                    
+                    if (Array.isArray(doctorDetails.name)) {
+                      return doctorDetails.name[0]?.text || 'Dr. Unknown';
+                    }
+                    
+                    return doctorDetails.name || 'Dr. Unknown';
+                  })()}
                 </Text>
                 <Text style={styles.doctorSpecialty}>
-                  {selectedAppointment.doctorDetails?.specialty ? 
-                    (Array.isArray(selectedAppointment.doctorDetails.specialty) ? 
-                      selectedAppointment.doctorDetails.specialty[0] : 
-                      selectedAppointment.doctorDetails.specialty) : 
-                    'Specialty not specified'}
+                  {(() => {
+                    const doctorDetails = selectedAppointment.doctorDetails;
+                    if (!doctorDetails?.specialty) return 'Specialty not specified';
+                    
+                    if (Array.isArray(doctorDetails.specialty)) {
+                      return doctorDetails.specialty[0] || 'Specialty not specified';
+                    }
+                    
+                    return doctorDetails.specialty || 'Specialty not specified';
+                  })()}
                 </Text>
               </View>
             </View>

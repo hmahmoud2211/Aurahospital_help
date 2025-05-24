@@ -642,7 +642,27 @@ export default function LaboristScreen() {
               {modalType === 'tests' && labTests.map(renderTestCard)}
               {modalType === 'scans' && scans.map(renderScanCard)}
               {modalType === 'appointments' && appointments.map((appointment) => {
-                const patientName = appointment.patientDetails.name?.[0]?.text || 'Unknown Patient';
+                const getPatientName = () => {
+                  try {
+                    const patientDetails = appointment.patientDetails;
+                    if (!patientDetails?.name) return 'Unknown Patient';
+                    
+                    if (Array.isArray(patientDetails.name) && patientDetails.name.length > 0) {
+                      const nameItem = patientDetails.name[0] as any;
+                      return nameItem?.text || 'Unknown Patient';
+                    }
+                    
+                    if (typeof patientDetails.name === 'object' && patientDetails.name !== null) {
+                      return (patientDetails.name as any)?.text || 'Unknown Patient';
+                    }
+                    
+                    return String(patientDetails.name) || 'Unknown Patient';
+                  } catch {
+                    return 'Unknown Patient';
+                  }
+                };
+                
+                const patientName = getPatientName();
                 
                 return (
                   <TouchableOpacity 

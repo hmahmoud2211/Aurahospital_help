@@ -368,11 +368,20 @@ export default function HomeScreen() {
                   </View>
                   <View style={styles.patientInfo}>
                     <Text style={styles.patientName}>
-                      {Array.isArray(appointment.patientDetails?.name)
-                        ? appointment.patientDetails.name[0]?.text || 'Unknown Patient'
-                        : (typeof appointment.patientDetails?.name === 'object'
-                            ? appointment.patientDetails.name?.text || 'Unknown Patient'
-                            : appointment.patientDetails?.name || 'Unknown Patient')}
+                      {(() => {
+                        const patientDetails = appointment.patientDetails;
+                        if (!patientDetails?.name) return 'Unknown Patient';
+                        
+                        if (Array.isArray(patientDetails.name)) {
+                          return patientDetails.name[0]?.text || 'Unknown Patient';
+                        }
+                        
+                        if (typeof patientDetails.name === 'object') {
+                          return patientDetails.name?.text || 'Unknown Patient';
+                        }
+                        
+                        return patientDetails.name || 'Unknown Patient';
+                      })()}
                     </Text>
                     <Text style={styles.patientReason}>
                       Reason: {appointment.reason}
