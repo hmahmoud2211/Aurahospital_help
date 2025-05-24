@@ -48,7 +48,21 @@ register_tortoise(
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to Aura Hospital API"}
+    return {"message": "Welcome to the Aura Hospital API"}
+
+@app.get("/check-license-type")
+async def check_license_type(license_number: str):
+    """Check what type of license a number belongs to"""
+    if license_number.startswith("N"):
+        return {"type": "nurse"}
+    elif license_number.startswith("DR"):
+        return {"type": "doctor"}
+    elif license_number.startswith("F"):
+        return {"type": "pharmacist"}
+    elif license_number.startswith("L"):
+        return {"type": "laboratory"}
+    else:
+        return {"type": "unknown"}
 
 # Patient endpoints
 @app.post("/patients/")

@@ -65,7 +65,7 @@ const PATIENT_PRESCRIPTIONS: DisplayMedication[] = [
     endDate: '2024-10-20',
     instructions: 'Take with meals',
     status: 'active',
-    refillsRemaining: 2,
+    refillsRemaining: 2, 
   },
   {
     id: 'med-p2-1',
@@ -123,7 +123,7 @@ export default function PharmacyScreen() {
 
   useEffect(() => {
     if (user && user.role === 'patient') {
-      fetchMedications(user.id);
+      fetchMedications(user.id.toString());
     }
   }, [user]);
   
@@ -176,7 +176,7 @@ export default function PharmacyScreen() {
       }
       
       // Refresh medications list
-      fetchMedications(user?.role === 'patient' ? user.id : selectedPatient.id);
+      fetchMedications(user?.role === 'patient' ? user.id.toString() : selectedPatient.id);
     }
     
     setIsSOAPModalVisible(false);
@@ -192,7 +192,7 @@ export default function PharmacyScreen() {
   };
 
   const renderAddButton = () => {
-    if (user?.role === 'doctor' || user?.role === 'nurse') {
+    if (user?.role === 'practitioner') {
       return (
         <TouchableOpacity 
           style={styles.addButton}
@@ -210,7 +210,7 @@ export default function PharmacyScreen() {
   
   const getFilteredMedications = (): DisplayMedication[] => {
     // For doctor view, show all patient prescriptions
-    if (user?.role === 'doctor' || user?.role === 'nurse') {
+    if (user?.role === 'practitioner') {
       let filtered = PATIENT_PRESCRIPTIONS;
       
       // Filter by status
@@ -240,7 +240,7 @@ export default function PharmacyScreen() {
   };
   
   // Only show View All button for doctor/nurse roles
-  const shouldShowViewAll = user?.role === 'doctor' || user?.role === 'nurse';
+  const shouldShowViewAll = user?.role === 'practitioner';
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
@@ -323,7 +323,15 @@ export default function PharmacyScreen() {
         >
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Add New Prescription</Text>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Add Prescription</Text>
+                <TouchableOpacity 
+                  style={styles.closeButton}
+                  onPress={() => setIsModalVisible(false)}
+                >
+                  <X size={24} color={Colors.text} />
+                </TouchableOpacity>
+              </View>
               
               <View style={styles.searchContainer}>
                 <Search size={20} color={Colors.textSecondary} style={styles.searchIcon} />
@@ -337,76 +345,76 @@ export default function PharmacyScreen() {
               </View>
               
               {searchResults.length > 0 && (
-                <View style={styles.searchResults}>
-                  {searchResults.map((medication) => (
+                <FlatList
+                  data={searchResults}
+                  keyExtractor={(item) => item.id}
+                  style={styles.searchResults}
+                  renderItem={({ item }) => (
                     <TouchableOpacity
-                      key={medication.id}
                       style={styles.searchResultItem}
-                      onPress={() => handleSelectMedication(medication)}
+                      onPress={() => handleSelectMedication(item)}
                     >
-                      <Text style={styles.searchResultName}>{medication.name}</Text>
+                      <Text style={styles.searchResultName}>{item.name}</Text>
                       <Text style={styles.searchResultDetails}>
-                        {medication.genericName} - {medication.category}
+                        {item.genericName} - {item.category}
                       </Text>
                     </TouchableOpacity>
-                  ))}
-                </View>
+                  )}
+                />
               )}
               
-              <TextInput
+              <Text style={styles.inputLabel}>Medication Name</Text>
+              <TextInput 
                 style={styles.input}
-                placeholder="Medication Name"
                 value={newPrescription.name}
                 onChangeText={(text) => setNewPrescription({...newPrescription, name: text})}
+                placeholder="Enter medication name"
               />
               
-              <TextInput
+              <Text style={styles.inputLabel}>Dosage</Text>
+              <TextInput 
                 style={styles.input}
-                placeholder="Dosage (e.g., 10mg)"
                 value={newPrescription.dosage}
                 onChangeText={(text) => setNewPrescription({...newPrescription, dosage: text})}
+                placeholder="e.g., 10mg"
               />
               
-              <TextInput
+              <Text style={styles.inputLabel}>Frequency</Text>
+              <TextInput 
                 style={styles.input}
-                placeholder="Frequency (e.g., Once daily)"
                 value={newPrescription.frequency}
                 onChangeText={(text) => setNewPrescription({...newPrescription, frequency: text})}
+                placeholder="e.g., Once daily"
               />
               
-              <TextInput
-                style={[styles.input, styles.notesInput]}
-                placeholder="Additional Notes"
+              <Text style={styles.inputLabel}>Additional Notes</Text>
+              <TextInput 
+                style={[styles.input, styles.textArea]}
                 value={newPrescription.notes}
                 onChangeText={(text) => setNewPrescription({...newPrescription, notes: text})}
+                placeholder="Enter any additional instructions or notes"
                 multiline
               />
               
-              <View style={styles.modalButtons}>
-                <Button 
-                  title="Cancel" 
-                  onPress={() => setIsModalVisible(false)} 
-                  color={Colors.textSecondary}
-                />
-                <Button 
-                  title="Save" 
-                  onPress={handleAddPrescription}
-                  color={Colors.primary}
-                />
-              </View>
+              <TouchableOpacity 
+                style={styles.submitButton}
+                onPress={handleAddPrescription}
+              >
+                <Text style={styles.submitButtonText}>Add Prescription</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </Modal>
         
-        {/* View All Prescriptions Modal */}
+        {/* View All Modal */}
         <Modal
           visible={isViewAllModalVisible}
-          animationType="slide"
           transparent={true}
+          animationType="slide"
           onRequestClose={() => setIsViewAllModalVisible(false)}
         >
           <View style={styles.modalContainer}>
-            <View style={[styles.modalContent, styles.viewAllModalContent]}>
+            <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>All Prescriptions</Text>
                 <TouchableOpacity 
@@ -418,7 +426,7 @@ export default function PharmacyScreen() {
               </View>
               
               {/* Patient filter for doctor/nurse view */}
-              {(user?.role === 'doctor' || user?.role === 'nurse') && (
+              {(user?.role === 'practitioner') && (
                 <View style={styles.patientFilterContainer}>
                   <Text style={styles.filterLabel}>Patient:</Text>
                   <View style={styles.patientFilterDropdown}>
@@ -512,7 +520,7 @@ export default function PharmacyScreen() {
                       </View>
                       
                       {/* Show patient name for doctor/nurse view */}
-                      {(user?.role === 'doctor' || user?.role === 'nurse') && item.patientName && (
+                      {(user?.role === 'practitioner') && item.patientName && (
                         <View style={styles.patientInfoContainer}>
                           <User size={14} color={Colors.textSecondary} />
                           <Text style={styles.patientInfoText}>{item.patientName}</Text>
@@ -607,27 +615,8 @@ export default function PharmacyScreen() {
               <Text style={styles.medicationHistoryName}>Amoxicillin 500mg</Text>
               <Text style={styles.medicationHistoryDate}>09/15/2023</Text>
             </View>
-            <Text style={styles.medicationHistoryDetails}>
-              1 capsule 3 times daily for 10 days
-            </Text>
-            <View style={styles.medicationHistoryStatus}>
-              <View style={[styles.statusDot, { backgroundColor: Colors.success }]} />
-              <Text style={styles.statusText}>Completed</Text>
-            </View>
-          </View>
-          
-          <View style={styles.medicationHistoryItem}>
-            <View style={styles.medicationHistoryHeader}>
-              <Text style={styles.medicationHistoryName}>Ibuprofen 400mg</Text>
-              <Text style={styles.medicationHistoryDate}>08/22/2023</Text>
-            </View>
-            <Text style={styles.medicationHistoryDetails}>
-              1 tablet as needed for pain, not to exceed 4 tablets per day
-            </Text>
-            <View style={styles.medicationHistoryStatus}>
-              <View style={[styles.statusDot, { backgroundColor: Colors.success }]} />
-              <Text style={styles.statusText}>Completed</Text>
-            </View>
+            <Text style={styles.medicationHistoryDetails}>3 times daily for 10 days</Text>
+            <Text style={styles.medicationHistoryStatus}>Completed</Text>
           </View>
         </View>
       </ScrollView>
@@ -799,9 +788,6 @@ const styles = StyleSheet.create({
     padding: 16,
     maxHeight: '80%',
   },
-  viewAllModalContent: {
-    maxHeight: '90%',
-  },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -856,6 +842,11 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     color: Colors.textSecondary,
   },
+  inputLabel: {
+    ...Typography.body,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
   input: {
     ...Typography.body,
     borderWidth: 1,
@@ -865,13 +856,20 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     backgroundColor: Colors.card,
   },
-  notesInput: {
+  textArea: {
     height: 100,
     textAlignVertical: 'top',
   },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  submitButton: {
+    backgroundColor: Colors.primary,
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  submitButtonText: {
+    ...Typography.caption,
+    color: Colors.background,
+    fontWeight: '600',
   },
   filterContainer: {
     flexDirection: 'row',
@@ -1002,16 +1000,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   medicationHistoryStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
-  },
-  statusText: {
     ...Typography.caption,
     color: Colors.textSecondary,
   },

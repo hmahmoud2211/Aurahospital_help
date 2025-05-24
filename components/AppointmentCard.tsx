@@ -9,11 +9,13 @@ import { Appointment } from '@/types/appointment';
 interface AppointmentCardProps {
   appointment: Appointment;
   showPatient?: boolean;
+  onPress?: () => void;
 }
 
 const AppointmentCard: React.FC<AppointmentCardProps> = ({
   appointment,
   showPatient = false,
+  onPress,
 }) => {
   const router = useRouter();
   
@@ -45,7 +47,11 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
   };
 
   const handlePress = () => {
-    router.push(`/appointments/${appointment.id}`);
+    if (onPress) {
+      onPress();
+    } else {
+      router.push(`/appointments/${appointment.id}`);
+    }
   };
 
   const isUpcoming = () => {
@@ -68,17 +74,21 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
       </View>
       
       <View style={styles.content}>
-        {showPatient && appointment.patient && (
+        {showPatient && appointment.patientDetails && (
           <View style={styles.infoRow}>
             <User size={16} color={Colors.textSecondary} />
-            <Text style={styles.infoText}>{appointment.patient.name}</Text>
+            <Text style={styles.infoText}>
+              {appointment.patientDetails.name?.[0]?.text || 'Unknown Patient'}
+            </Text>
           </View>
         )}
         
-        {!showPatient && appointment.doctor && (
+        {!showPatient && appointment.doctorDetails && (
           <View style={styles.infoRow}>
             <User size={16} color={Colors.textSecondary} />
-            <Text style={styles.infoText}>Dr. {appointment.doctor.name}</Text>
+            <Text style={styles.infoText}>
+              Dr. {appointment.doctorDetails.name?.[0]?.text || 'Unknown Doctor'}
+            </Text>
           </View>
         )}
         
