@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,33 +7,155 @@ import Colors from '@/constants/colors';
 import Typography from '@/constants/typography';
 import Header from '@/components/Header';
 import { usePatientStore } from '@/store/patient-store';
+import { useAppointmentStore } from '@/store/appointment-store';
+import { useAuthStore } from '@/store/auth-store';
 import HealthMetricCard from '@/components/HealthMetricCard';
 
 export default function PatientMonitoringScreen() {
   const router = useRouter();
+  const { user } = useAuthStore();
   const { currentPatient, vitalSigns, setCurrentPatient } = usePatientStore();
+  const { appointments, fetchAppointments } = useAppointmentStore();
   const { patientId } = useLocalSearchParams();
+  const [realPatientData, setRealPatientData] = useState<any>(null);
   
+  useEffect(() => {
+    // Fetch appointments to get real patient data
+    if (user) {
+      console.log('Fetching appointments to get patient data');
+      fetchAppointments(String(user.id), user.role);
+    }
+  }, [user]);
+
   useEffect(() => {
     if (patientId) {
       setCurrentPatient(String(patientId));
+      
+      // Find the real patient data from appointments
+      if (appointments && appointments.length > 0) {
+        console.log('🔍 Looking for patient in appointments:', { patientId, appointments });
+        
+        // Try multiple matching strategies
+        const patientAppointment = appointments.find(apt => {
+          // Strategy 1: Direct patient_id match
+          if (String(apt.patient_id) === String(patientId)) return true;
+          
+          // Strategy 2: patientDetails.id match
+          if (apt.patientDetails?.id === String(patientId)) return true;
+          
+          // Strategy 3: patientDetails.id as number match
+          if (apt.patientDetails?.id === Number(patientId)) return true;
+          
+          return false;
+        });
+        
+        if (patientAppointment) {
+          console.log('✅ Found patient appointment:', patientAppointment);
+          console.log('📝 Patient details:', patientAppointment.patientDetails);
+          setRealPatientData(patientAppointment);
+        } else {
+          console.log('❌ No appointment found for patientId:', patientId);
+          console.log('📋 Available appointments:', appointments.map(apt => ({
+            patient_id: apt.patient_id,
+            patientDetailsId: apt.patientDetails?.id,
+            patientName: apt.patientDetails?.name
+          })));
+        }
+      } else {
+        console.log('⏳ No appointments available yet');
+      }
     } else if (!currentPatient) {
       setCurrentPatient('p1');
     }
-  }, [patientId, currentPatient, setCurrentPatient]);
+  }, [patientId, currentPatient, setCurrentPatient, appointments]);
+
+  const getPatientName = () => {
+    console.log('🏷️ Getting patient name from:', realPatientData?.patientDetails?.name);
+    console.log('🏷️ Full patientDetails:', realPatientData?.patientDetails);
+    
+    if (realPatientData?.patientDetails?.name) {
+      const name = realPatientData.patientDetails.name;
+      
+      if (Array.isArray(name)) {
+        const extractedName = name[0]?.text || name[0]?.family || name[0]?.given || 'Unknown Patient';
+        console.log('🏷️ Extracted name from array:', extractedName);
+        return extractedName;
+      }
+      
+      if (typeof name === 'object') {
+        const extractedName = name?.text || name?.family || name?.given || 'Unknown Patient';
+        console.log('🏷️ Extracted name from object:', extractedName);
+        return extractedName;
+      }
+      
+      if (typeof name === 'string') {
+        console.log('🏷️ Using string name:', name);
+        return name;
+      }
+    }
+    
+    // If we have appointment data but no name, show more info
+    if (realPatientData) {
+      const fallbackName = `Patient ${realPatientData.patient_id || patientId}`;
+      console.log('🏷️ Using fallback name:', fallbackName);
+      return fallbackName;
+    }
+    
+    // Last resort
+    const lastResort = `Patient ${patientId}`;
+    console.log('🏷️ Using last resort name:', lastResort);
+    return lastResort;
+  };
+
+  const getPatientInfo = () => {
+    // Use real appointment data if available, otherwise return minimal info
+    if (realPatientData?.patientDetails) {
+      return {
+        name: getPatientName(),
+        email: realPatientData.patientDetails.email || 'No email',
+        gender: realPatientData.patientDetails.gender || 'Not specified',
+        dateOfBirth: realPatientData.patientDetails.dateOfBirth || 'Not specified',
+        allergies: realPatientData.patientDetails.allergies || [],
+        conditions: realPatientData.patientDetails.conditions || []
+      };
+    }
+    
+    return {
+      name: getPatientName(),
+      email: 'No email available',
+      gender: 'Not specified',
+      dateOfBirth: 'Not specified',
+      allergies: [],
+      conditions: []
+    };
+  };
+
+  const patientInfo = getPatientInfo();
   
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' });
   };
 
-  // Show loading state if patient data is not yet loaded
-  if (!currentPatient) {
+  // Show loading state if appointments are still being fetched
+  if (!appointments || appointments.length === 0) {
     return (
       <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
         <Header title="Patient Monitoring" />
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Loading patient data...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show loading state if patient data is not yet loaded
+  if (!currentPatient && !realPatientData) {
+    return (
+      <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
+        <Header title="Patient Monitoring" />
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading patient information...</Text>
         </View>
       </SafeAreaView>
     );
@@ -58,24 +180,31 @@ export default function PatientMonitoringScreen() {
             <UserIcon size={24} color={Colors.primary} />
           </View>
           <View style={styles.patientInfo}>
-            <Text style={styles.patientName}>{currentPatient.name}</Text>
-            <Text style={styles.patientDemographics}>
-              {currentPatient.gender && `Gender: ${currentPatient.gender}  `}
-              {currentPatient.dateOfBirth && `DOB: ${currentPatient.dateOfBirth}`}
-            </Text>
-            {currentPatient.allergies && currentPatient.allergies.length > 0 && (
+            <Text style={styles.patientName}>{patientInfo.name}</Text>
+            {realPatientData && (
               <Text style={styles.patientDemographics}>
-                Allergies: {currentPatient.allergies.join(', ')}
+                Latest Appointment: {realPatientData.reason} - {realPatientData.date} at {realPatientData.time}
               </Text>
             )}
-            {currentPatient.conditions && currentPatient.conditions.length > 0 && (
+            <Text style={styles.patientDemographics}>
+              {patientInfo.gender && `Gender: ${patientInfo.gender}  `}
+              {patientInfo.dateOfBirth && `DOB: ${patientInfo.dateOfBirth}`}
+            </Text>
+            {patientInfo.allergies && patientInfo.allergies.length > 0 && (
               <Text style={styles.patientDemographics}>
-                Conditions: {currentPatient.conditions.join(', ')}
+                Allergies: {patientInfo.allergies.join(', ')}
+              </Text>
+            )}
+            {patientInfo.conditions && patientInfo.conditions.length > 0 && (
+              <Text style={styles.patientDemographics}>
+                Conditions: {patientInfo.conditions.join(', ')}
               </Text>
             )}
             <View style={styles.patientStatusContainer}>
               <View style={styles.statusDot} />
-              <Text style={styles.patientStatus}>Stable</Text>
+              <Text style={styles.patientStatus}>
+                {realPatientData?.status === 'completed' ? 'Stable' : realPatientData?.status || 'Stable'}
+              </Text>
             </View>
           </View>
         </View>

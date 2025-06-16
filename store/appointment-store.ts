@@ -42,21 +42,30 @@ export const useAppointmentStore = create<AppointmentState>()(
         set({ isLoading: true, error: null });
         
         try {
+          console.log(`📅 Fetching appointments for ${userRole} with ID: ${userId}`);
+          
           const params = new URLSearchParams();
           if (userRole === 'patient') {
             params.append('patient_id', userId);
-          } else if (userRole === 'doctor') {
+          } else if (userRole === 'doctor' || userRole === 'practitioner') {
             params.append('doctor_id', userId);
           }
           
-          const response = await fetch(`${API_URL}/appointments/?${params.toString()}`, {
+          const url = `${API_URL}/appointments/?${params.toString()}`;
+          console.log(`📅 Making request to: ${url}`);
+          
+          const response = await fetch(url, {
             headers: getAuthHeaders(),
           });
+          
           if (!response.ok) {
-            throw new Error('Failed to fetch appointments');
+            const errorText = await response.text();
+            console.error(`❌ Failed to fetch appointments: ${response.status} - ${errorText}`);
+            throw new Error(`Failed to fetch appointments: ${response.status}`);
           }
           
           const appointments = await response.json();
+          console.log(`✅ Successfully fetched ${appointments.length} appointments for ${userRole} ${userId}:`, appointments);
           
           // Filter upcoming appointments
           const now = new Date();
@@ -65,13 +74,30 @@ export const useAppointmentStore = create<AppointmentState>()(
             return appointmentDate > now && appointment.status !== 'cancelled';
           });
           
+          console.log(`📊 Statistics for ${userRole} ${userId}:`);
+          console.log(`   - Total appointments: ${appointments.length}`);
+          console.log(`   - Upcoming appointments: ${upcoming.length}`);
+          
           set({
             appointments,
             upcomingAppointments: upcoming,
             isLoading: false,
           });
         } catch (error) {
-          set({ error: 'Failed to load appointments', isLoading: false });
+          console.error('❌ Error in fetchAppointments:', error);
+          
+          if (error instanceof TypeError && error.message.includes('fetch')) {
+            console.error('🌐 Network error - check if the backend server is running');
+            set({ 
+              error: 'Unable to connect to server. Please check your connection.',
+              isLoading: false 
+            });
+          } else {
+            set({ 
+              error: 'Failed to load appointments',
+              isLoading: false 
+            });
+          }
         }
       },
       

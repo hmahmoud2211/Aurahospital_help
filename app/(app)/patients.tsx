@@ -1,218 +1,188 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, User, Calendar, AlertCircle, Pill, CheckCircle2, XCircle, Clock } from 'lucide-react-native';
+import { UserIcon, Search } from 'lucide-react-native';
 import Colors from '@/constants/colors';
 import Typography from '@/constants/typography';
 import Header from '@/components/Header';
-
-const DUMMY_PATIENT_HISTORIES = [
-  {
-    patientId: 'p123',
-    patientName: 'John Smith',
-    dateOfBirth: '1985-06-15',
-    prescriptions: [
-      {
-        id: 'rx1',
-        medication: 'Amoxicillin 500mg',
-        dosage: '1 capsule',
-        frequency: '3 times daily',
-        prescribedDate: '2024-03-20',
-        endDate: '2024-03-27',
-        status: 'active',
-        prescribedBy: 'Dr. Sarah Chen'
-      },
-      {
-        id: 'rx2',
-        medication: 'Lisinopril 10mg',
-        dosage: '1 tablet',
-        frequency: 'once daily',
-        prescribedDate: '2024-01-15',
-        status: 'active',
-        prescribedBy: 'Dr. Michael Rodriguez'
-      }
-    ],
-    foodAllergies: ['Peanuts', 'Shellfish'],
-    drugAllergies: ['Penicillin', 'Sulfa drugs'],
-    chronicConditions: ['Hypertension'],
-    personalHistory: ['Appendectomy (2010)', 'Smoker (2005-2015)'],
-    familyHistory: ['Father: Heart Disease', 'Mother: Breast Cancer']
-  },
-  {
-    patientId: 'p124',
-    patientName: 'Emma Wilson',
-    dateOfBirth: '1992-09-23',
-    prescriptions: [
-      {
-        id: 'rx3',
-        medication: 'Metformin 500mg',
-        dosage: '1 tablet',
-        frequency: 'twice daily',
-        prescribedDate: '2024-02-01',
-        status: 'active',
-        prescribedBy: 'Dr. Emily Wong'
-      }
-    ],
-    foodAllergies: ['None reported'],
-    drugAllergies: ['None reported'],
-    chronicConditions: ['Type 2 Diabetes'],
-    personalHistory: ['Gestational Diabetes (2020)'],
-    familyHistory: ['Father: Type 2 Diabetes', 'Grandmother: Hypertension']
-  }
-];
+import { useAuthStore } from '@/store/auth-store';
+import { useAppointmentStore } from '@/store/appointment-store';
 
 export default function PatientsScreen() {
+  const router = useRouter();
+  const { user } = useAuthStore();
+  const { appointments, fetchAppointments, isLoading } = useAppointmentStore();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPatient, setSelectedPatient] = useState<typeof DUMMY_PATIENT_HISTORIES[0] | null>(null);
+  const [filteredAppointments, setFilteredAppointments] = useState<any[]>([]);
 
-  const filteredPatients = DUMMY_PATIENT_HISTORIES.filter(patient =>
-    patient.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    patient.patientId.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Debug effect to show component is mounting
+  useEffect(() => {
+    console.log('🏥 PatientsScreen component mounted');
+    console.log('👤 Current user:', user);
+    console.log('📊 Initial state - patients:', appointments?.length || 0);
+  }, []);
 
-  const renderPatientCard = (patient: typeof DUMMY_PATIENT_HISTORIES[0]) => (
-    <TouchableOpacity
-      key={patient.patientId}
-      style={[
-        styles.patientCard,
-        selectedPatient?.patientId === patient.patientId && styles.selectedCard
-      ]}
-      onPress={() => setSelectedPatient(patient)}
-    >
-      <View style={styles.patientHeader}>
-        <View style={styles.patientInfo}>
-          <Text style={styles.patientName}>{patient.patientName}</Text>
-          <Text style={styles.patientId}>ID: {patient.patientId}</Text>
-        </View>
-        <View style={styles.ageInfo}>
-          <Calendar size={16} color={Colors.textSecondary} />
-          <Text style={styles.dateOfBirth}>DOB: {patient.dateOfBirth}</Text>
-        </View>
-      </View>
+  useEffect(() => {
+    // Fetch appointments using the same logic as appointments tab
+    if (user) {
+      console.log(`📅 Fetching appointments for ${user.role} with ID: ${user.id}`);
+      fetchAppointments(String(user.id), user.role);
+    }
+  }, [user]);
 
-      <View style={styles.conditionsContainer}>
-        {patient.chronicConditions.map((condition, index) => (
-          <View key={index} style={styles.conditionBadge}>
-            <AlertCircle size={12} color={Colors.warning} />
-            <Text style={styles.conditionText}>{condition}</Text>
+  useEffect(() => {
+    // Filter appointments based on search query (same as index.tsx logic)
+    if (searchQuery.trim() === '') {
+      setFilteredAppointments(appointments || []);
+    } else {
+      const filtered = (appointments || []).filter(appointment => {
+        const patientDetails = appointment.patientDetails;
+        let patientName = 'Unknown Patient';
+        
+        if (patientDetails?.name) {
+          if (Array.isArray(patientDetails.name)) {
+            patientName = patientDetails.name[0]?.text || 'Unknown Patient';
+          } else if (typeof patientDetails.name === 'object') {
+            patientName = patientDetails.name?.text || 'Unknown Patient';
+          } else {
+            patientName = patientDetails.name || 'Unknown Patient';
+          }
+        }
+        
+        return (
+          patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          appointment.reason?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          String(appointment.patient_id).includes(searchQuery)
+        );
+      });
+      setFilteredAppointments(filtered);
+    }
+  }, [searchQuery, appointments]);
+
+  // Debug effect to log current state
+  useEffect(() => {
+    console.log('📊 Current state update:');
+    console.log(`  - Filtered appointments: ${filteredAppointments?.length || 0}`, filteredAppointments);
+    console.log(`  - Total appointments: ${appointments?.length || 0}`, appointments);
+    console.log(`  - Is loading: ${isLoading}`);
+  }, [filteredAppointments, appointments, isLoading]);
+
+  const renderPatientCard = (appointment: any) => {
+    return (
+      <View key={String(appointment.id)} style={styles.patientCard}>
+        <View style={styles.patientCardHeader}>
+          <View style={styles.patientIconContainer}>
+            <UserIcon size={20} color={Colors.primary} />
           </View>
-        ))}
-      </View>
-    </TouchableOpacity>
-  );
-
-  const renderPrescriptionCard = (prescription: typeof DUMMY_PATIENT_HISTORIES[0]['prescriptions'][0]) => (
-    <View key={prescription.id} style={styles.prescriptionCard}>
-      <View style={styles.prescriptionHeader}>
-        <Pill size={16} color={Colors.primary} />
-        <Text style={styles.medicationName}>{prescription.medication}</Text>
-        <View style={[
-          styles.statusBadge,
-          { backgroundColor: prescription.status === 'active' ? `${Colors.success}30` : `${Colors.textSecondary}30` }
-        ]}>
-          <Text style={styles.statusText}>{prescription.status.toUpperCase()}</Text>
+          <View style={styles.patientInfo}>
+            <Text style={styles.patientName}>
+              {(() => {
+                const patientDetails = appointment.patientDetails;
+                if (!patientDetails?.name) return 'Unknown Patient';
+                
+                if (Array.isArray(patientDetails.name)) {
+                  return patientDetails.name[0]?.text || 'Unknown Patient';
+                }
+                
+                if (typeof patientDetails.name === 'object') {
+                  return patientDetails.name?.text || 'Unknown Patient';
+                }
+                
+                return patientDetails.name || 'Unknown Patient';
+              })()}
+            </Text>
+            <Text style={styles.patientReason}>
+              Reason: {appointment.reason}
+            </Text>
+          </View>
+          <Text style={styles.appointmentTime}>{appointment.time}</Text>
+        </View>
+        <View style={styles.patientCardActions}>
+          <TouchableOpacity 
+            style={styles.viewRecordsButton}
+            onPress={() => {
+              const patientId = appointment.patientDetails?.id || appointment.patient_id;
+              console.log('Navigating to patient-monitoring for patientId:', patientId);
+              router.push(`/patient-monitoring?patientId=${patientId}`);
+            }}
+          >
+            <Text style={styles.viewRecordsButtonText}>View Records</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.sendMessageButton}
+            onPress={() => router.push('/(app)/(tabs)/chat')}
+          >
+            <Text style={styles.sendMessageButtonText}>Send Message</Text>
+          </TouchableOpacity>
         </View>
       </View>
-
-      <View style={styles.prescriptionDetails}>
-        <Text style={styles.dosageText}>
-          {prescription.dosage} {prescription.frequency}
-        </Text>
-        <Text style={styles.prescriptionDate}>
-          Prescribed: {prescription.prescribedDate}
-          {prescription.endDate ? ` - ${prescription.endDate}` : ''}
-        </Text>
-        <Text style={styles.prescribedBy}>By: {prescription.prescribedBy}</Text>
-      </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
-      <Header title="Patient History" />
+      <Header title="My Patients" />
       
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Search size={20} color={Colors.textSecondary} />
+      <View style={styles.content}>
+        <View style={styles.searchContainer}>
+          <Search size={20} color={Colors.textSecondary} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search patients by name or ID..."
+            placeholder="Search patients by name, email, or ID..."
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholderTextColor={Colors.textSecondary}
           />
         </View>
-      </View>
 
-      <View style={styles.content}>
-        <View style={styles.patientList}>
-          <ScrollView>
-            {filteredPatients.map(renderPatientCard)}
-          </ScrollView>
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{filteredAppointments.length}</Text>
+            <Text style={styles.statLabel}>Patients with Appointments</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>
+              {appointments.filter(apt => {
+                if (!apt || !apt.date || !apt.time) return false;
+                const appointmentDate = new Date(`${apt.date}T${apt.time}`);
+                return appointmentDate > new Date() && apt.status !== 'cancelled';
+              }).length}
+            </Text>
+            <Text style={styles.statLabel}>Upcoming Appointments</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>0</Text>
+            <Text style={styles.statLabel}>Critical Status</Text>
+          </View>
         </View>
 
-        {selectedPatient && (
-          <View style={styles.patientDetails}>
-            <ScrollView>
-              <View style={styles.detailsHeader}>
-                <Text style={styles.detailsTitle}>Patient Details</Text>
-              </View>
-
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Food Allergies</Text>
-                <View style={styles.allergiesList}>
-                  {selectedPatient.foodAllergies.map((allergy, index) => (
-                    <View key={index} style={styles.allergyBadge}>
-                      <AlertCircle size={12} color={Colors.danger} />
-                      <Text style={styles.allergyText}>{allergy}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Drug/Medication Allergies</Text>
-                <View style={styles.allergiesList}>
-                  {selectedPatient.drugAllergies.map((allergy, index) => (
-                    <View key={index} style={styles.allergyBadge}>
-                      <AlertCircle size={12} color={Colors.danger} />
-                      <Text style={styles.allergyText}>{allergy}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Personal History</Text>
-                <View style={styles.historyList}>
-                  {selectedPatient.personalHistory.map((history, index) => (
-                    <View key={index} style={styles.historyItem}>
-                      <CheckCircle2 size={12} color={Colors.success} />
-                      <Text style={styles.historyText}>{history}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Family History</Text>
-                <View style={styles.historyList}>
-                  {selectedPatient.familyHistory.map((history, index) => (
-                    <View key={index} style={styles.historyItem}>
-                      <CheckCircle2 size={12} color={Colors.success} />
-                      <Text style={styles.historyText}>{history}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Prescriptions</Text>
-                {selectedPatient.prescriptions.map(renderPrescriptionCard)}
-              </View>
-            </ScrollView>
-          </View>
-        )}
+        <ScrollView 
+          style={styles.patientsList}
+          contentContainerStyle={styles.patientsListContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Loading patients with appointments...</Text>
+            </View>
+          ) : filteredAppointments.length > 0 ? (
+            filteredAppointments.map(renderPatientCard)
+          ) : (
+            <View style={styles.emptyContainer}>
+              <UserIcon size={48} color={Colors.textSecondary} />
+              <Text style={styles.emptyTitle}>
+                {searchQuery ? 'No patients found' : 'No patients with appointments'}
+              </Text>
+              <Text style={styles.emptySubtitle}>
+                {searchQuery 
+                  ? 'Try adjusting your search criteria'
+                  : 'Patients will appear here when they book appointments with you. Only patients who have booked appointments are shown in this list.'
+                }
+              </Text>
+            </View>
+          )}
+        </ScrollView>
       </View>
     </SafeAreaView>
   );
@@ -223,181 +193,178 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  searchContainer: {
-    padding: 16,
-    backgroundColor: Colors.card,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.background,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 48,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 12,
-    fontSize: 16,
-    color: Colors.text,
-  },
   content: {
     flex: 1,
+    padding: 16,
+  },
+  searchContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.card,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
-  patientList: {
-    width: '40%',
-    borderRightWidth: 1,
-    borderRightColor: Colors.border,
-    padding: 16,
+  searchIcon: {
+    marginRight: 12,
   },
-  patientDetails: {
+  searchInput: {
+    ...Typography.body,
     flex: 1,
+    paddingVertical: 12,
+    color: Colors.text,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    marginHorizontal: -8,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: Colors.card,
+    borderRadius: 12,
     padding: 16,
+    marginHorizontal: 8,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statNumber: {
+    ...Typography.h3,
+    color: Colors.primary,
+    marginBottom: 4,
+  },
+  statLabel: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  patientsList: {
+    flex: 1,
+  },
+  patientsListContent: {
+    paddingBottom: 24,
   },
   patientCard: {
     backgroundColor: Colors.card,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  selectedCard: {
-    borderWidth: 2,
-    borderColor: Colors.primary,
-  },
-  patientHeader: {
+  patientCardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: 12,
+  },
+  patientIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   patientInfo: {
     flex: 1,
   },
   patientName: {
-    ...Typography.h5,
-    marginBottom: 4,
-  },
-  patientId: {
-    ...Typography.caption,
-    color: Colors.textSecondary,
-  },
-  ageInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  dateOfBirth: {
-    ...Typography.caption,
-    color: Colors.textSecondary,
-    marginLeft: 6,
-  },
-  conditionsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  conditionBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: `${Colors.warning}15`,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  conditionText: {
-    ...Typography.caption,
-    color: Colors.warning,
-    marginLeft: 4,
-  },
-  detailsHeader: {
-    marginBottom: 24,
-  },
-  detailsTitle: {
-    ...Typography.h4,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    ...Typography.h5,
-    marginBottom: 16,
-  },
-  allergiesList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  allergyBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: `${Colors.danger}15`,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  allergyText: {
-    ...Typography.caption,
-    color: Colors.danger,
-    marginLeft: 4,
-  },
-  historyList: {
-    flexDirection: 'column',
-  },
-  historyItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-    marginBottom: 8,
-  },
-  historyText: {
     ...Typography.body,
-    color: Colors.text,
-    marginLeft: 8,
-  },
-  prescriptionCard: {
-    backgroundColor: Colors.card,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-  },
-  prescriptionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  medicationName: {
-    ...Typography.body,
-    fontWeight: '500',
-    flex: 1,
-    marginLeft: 8,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    ...Typography.caption,
     fontWeight: '600',
+    marginBottom: 2,
   },
-  prescriptionDetails: {
-    marginLeft: 24,
-  },
-  dosageText: {
-    ...Typography.body,
-    marginBottom: 4,
-  },
-  prescriptionDate: {
+  patientReason: {
     ...Typography.caption,
     color: Colors.textSecondary,
-    marginBottom: 4,
+    marginBottom: 1,
   },
-  prescribedBy: {
+  appointmentTime: {
     ...Typography.caption,
+    color: Colors.textSecondary,
+  },
+  patientCardActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 16,
+    gap: 12,
+  },
+  viewRecordsButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  viewRecordsButtonText: {
+    ...Typography.body,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  sendMessageButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: Colors.card,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  sendMessageButtonText: {
+    ...Typography.body,
+    color: Colors.primary,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 64,
+  },
+  emptyTitle: {
+    ...Typography.h4,
+    color: Colors.textSecondary,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    ...Typography.body,
     color: Colors.textSecondary,
   },
 });

@@ -264,31 +264,37 @@ export default function BookAppointmentScreen() {
           
           {showDoctorList && (
             <View style={styles.doctorList}>
-              {doctors.map((doctor) => (
-                <TouchableOpacity
-                  key={doctor.id}
-                  style={[
-                    styles.doctorItem,
-                    selectedDoctor?.id === doctor.id && styles.doctorItemSelected,
-                  ]}
-                  onPress={() => {
-                    setSelectedDoctor(doctor);
-                    setShowDoctorList(false);
-                  }}
-                >
-                  <View style={styles.doctorItemAvatarContainer}>
-                    <User size={20} color={Colors.primary} />
-                  </View>
-                  <View style={styles.doctorItemInfo}>
-                    <Text style={styles.doctorItemName}>
-                      {Array.isArray(doctor.name) ? doctor.name[0]?.text : ''}
-                    </Text>
-                    <Text style={styles.doctorItemSpecialty}>
-                      {Array.isArray(doctor.specialty) ? doctor.specialty[0] : ''}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
+              <ScrollView 
+                style={styles.doctorScrollView}
+                showsVerticalScrollIndicator={true}
+                nestedScrollEnabled={true}
+              >
+                {doctors.map((doctor) => (
+                  <TouchableOpacity
+                    key={doctor.id}
+                    style={[
+                      styles.doctorItem,
+                      selectedDoctor?.id === doctor.id && styles.doctorItemSelected,
+                    ]}
+                    onPress={() => {
+                      setSelectedDoctor(doctor);
+                      setShowDoctorList(false);
+                    }}
+                  >
+                    <View style={styles.doctorItemAvatarContainer}>
+                      <User size={20} color={Colors.primary} />
+                    </View>
+                    <View style={styles.doctorItemInfo}>
+                      <Text style={styles.doctorItemName}>
+                        {Array.isArray(doctor.name) ? doctor.name[0]?.text : ''}
+                      </Text>
+                      <Text style={styles.doctorItemSpecialty}>
+                        {Array.isArray(doctor.specialty) ? doctor.specialty[0] : ''}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
           )}
         </View>
@@ -500,6 +506,9 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     borderRadius: 8,
     marginTop: 4,
+    maxHeight: 200,
+  },
+  doctorScrollView: {
     maxHeight: 200,
   },
   doctorItem: {

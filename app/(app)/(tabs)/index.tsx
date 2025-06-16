@@ -323,7 +323,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </Link>
           
-          <Link href="/patient-monitoring" asChild>
+          <Link href="/patients" asChild>
             <TouchableOpacity style={styles.actionCard}>
               <View style={[styles.actionIconContainer, { backgroundColor: '#E3F2FD' }]}>
                 <FileText size={24} color={ExtendedColors.info || '#2196F3'} />
