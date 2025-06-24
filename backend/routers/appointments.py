@@ -7,7 +7,7 @@ from ..auth import get_current_user
 router = APIRouter()
 
 @router.post("/appointments/", response_model=dict)
-async def create_appointment(appointment: AppointmentIn_Pydantic, current_user: Optional[dict] = None):
+async def create_appointment(appointment: AppointmentIn_Pydantic, current_user: dict = Depends(get_current_user)):
     print("Received appointment payload:", appointment)
     # Verify the patient exists
     patient = await Patient.get_or_none(id=appointment.patient_id)
